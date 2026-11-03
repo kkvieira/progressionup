@@ -1,0 +1,638 @@
+/* =====================================================================
+   Sistema de Missões — ESTILOS DO JOGO 2D (MISSÃO NA CIDADE)
+   Mantém a estética HUD cyberpunk verde-limão / ciano / azul-petróleo
+   ===================================================================== */
+
+/* ---------- Chip de Ficha nas Missões Diárias ---------- */
+.tkt-chip{
+  color:var(--gold);
+  background:rgba(255,194,26,.12);
+  border:1px solid rgba(255,194,26,.55);
+  padding:1px 7px;
+  letter-spacing:.08em;
+}
+
+/* ---------- Miniatura bloqueada no editor de personagem ---------- */
+.thumb.locked{
+  opacity:.35;
+  position:relative;
+  filter:grayscale(.8);
+}
+.thumb.locked::after{
+  content:"🔒";
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  background:rgba(8,16,26,.55);
+}
+
+/* ---------- Barra de lançamento da Missão na Cidade (Rodapé) ---------- */
+.city-launch-bar{
+  width:100%;
+  max-width:880px;
+  margin-bottom:10px;
+  --cut:polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+}
+.city-bar-inner{
+  padding:14px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+  background:linear-gradient(90deg, rgba(10,58,79,.94), rgba(11,22,36,.96) 55%, rgba(10,58,79,.94));
+}
+.city-currencies{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.curr-pill{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  background:rgba(0,240,255,.08);
+  border:1px solid rgba(0,240,255,.38);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+}
+.curr-ico{ font-size:20px; line-height:1; }
+.curr-pill small{ display:block; font-size:9px; color:var(--teal); letter-spacing:.14em; }
+.curr-pill b{ font-family:var(--font-title); font-size:16px; color:var(--gold); }
+.curr-pill.xp-cap-pill b{ color:var(--lime); font-size:14px; }
+
+.city-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.city-play-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:10px 26px;
+  background:linear-gradient(180deg, #9eff5e, var(--lime) 55%, #32b814);
+  color:var(--navy);
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);
+  box-shadow:0 0 16px rgba(124,255,58,.6);
+  transition:transform .15s, filter .2s, box-shadow .2s;
+}
+.city-play-btn:hover:not(:disabled){
+  transform:translateY(-2px) scale(1.02);
+  filter:brightness(1.1);
+  box-shadow:0 0 24px rgba(124,255,58,.95);
+}
+.city-play-btn:disabled{
+  background:linear-gradient(180deg, #3a4b52, #253338);
+  color:#8aa0a8;
+  box-shadow:none;
+  cursor:not-allowed;
+}
+.city-play-btn .play-title{
+  font-family:var(--font-title);
+  font-size:15px;
+  letter-spacing:.12em;
+  font-weight:700;
+}
+.city-play-btn .play-sub{
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.1em;
+  opacity:.85;
+}
+.city-shop-btn{
+  padding:11px 16px;
+  font-size:12px;
+  border-color:var(--gold);
+  color:var(--gold);
+}
+.city-shop-btn:hover{
+  background:var(--gold);
+  color:var(--navy);
+}
+
+/* ---------- Modal da Loja ---------- */
+.shop-balance{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  padding:10px 14px;
+  margin-bottom:16px;
+  background:rgba(10,58,79,.5);
+  border-left:4px solid var(--gold);
+  font-family:var(--font-title);
+  font-size:13px;
+}
+.shop-balance b{ color:var(--gold); }
+.shop-sections{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+.shop-sec-title{
+  font-family:var(--font-title);
+  font-size:13px;
+  color:var(--cyan);
+  letter-spacing:.2em;
+  border-bottom:1px dashed rgba(0,240,255,.4);
+  padding-bottom:6px;
+  margin-bottom:10px;
+}
+.shop-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  gap:12px;
+}
+.shop-card{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+  background:rgba(10,58,79,.42);
+  border:1px solid rgba(0,240,255,.35);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+}
+.shop-card-head{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.shop-card-head canvas.sprite{
+  width:46px;
+  height:46px;
+  background:rgba(0,0,0,.3);
+  border:1px solid rgba(0,240,255,.3);
+  flex:0 0 auto;
+}
+.shop-card-ico{
+  width:46px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  font-size:24px;
+  background:rgba(0,240,255,.1);
+  border:1px solid rgba(0,240,255,.35);
+  flex:0 0 auto;
+}
+.shop-card b{
+  font-family:var(--font-title);
+  font-size:13px;
+  color:var(--lime);
+  display:block;
+}
+.shop-card small{
+  font-size:12px;
+  opacity:.85;
+  display:block;
+  line-height:1.25;
+}
+.shop-pips{
+  display:flex;
+  gap:4px;
+  margin-top:4px;
+}
+.shop-pips span{
+  flex:1;
+  height:6px;
+  background:rgba(255,255,255,.15);
+}
+.shop-pips span.on{
+  background:var(--lime);
+  box-shadow:0 0 6px var(--lime);
+}
+.shop-buy-btn{
+  width:100%;
+  padding:8px 12px;
+  font-family:var(--font-title);
+  font-size:11px;
+  letter-spacing:.1em;
+  background:var(--teal);
+  color:var(--navy);
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  transition:filter .15s, transform .15s;
+}
+.shop-buy-btn:hover:not(:disabled){
+  filter:brightness(1.15);
+  transform:translateY(-1px);
+}
+.shop-buy-btn.equipped{
+  background:var(--lime);
+  color:var(--navy);
+}
+.shop-buy-btn:disabled{
+  background:#2c3e45;
+  color:#788a91;
+  cursor:not-allowed;
+}
+
+/* ---------- Tela Principal do Jogo ---------- */
+.game-screen{
+  position:fixed;
+  inset:0;
+  z-index:75;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  background:rgba(3,12,18,.92);
+  backdrop-filter:blur(6px);
+  user-select:none;
+  -webkit-user-select:none;
+}
+.game-screen.open{
+  display:flex;
+  animation:fade .25s ease;
+}
+.game-frame{
+  width:min(1120px, 100%);
+  max-height:98vh;
+  --cut:polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+}
+.game-inner{
+  padding:12px 16px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:linear-gradient(180deg, rgba(8,22,34,.98), rgba(5,14,22,.98));
+}
+
+/* ---------- HUD Superior do Jogo ---------- */
+.game-hud{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:6px 10px;
+  background:rgba(10,58,79,.45);
+  border:1px solid rgba(0,240,255,.35);
+}
+.gh-left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.gh-avatar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.gh-avatar canvas{
+  width:38px;
+  height:38px;
+  background:rgba(0,0,0,.35);
+  border:1px solid var(--cyan);
+}
+.gh-name{
+  font-family:var(--font-title);
+  font-size:13px;
+  color:var(--lime);
+}
+.gh-lvl{
+  font-size:11px;
+  font-weight:700;
+  color:var(--cyan);
+}
+.gh-hp-wrap{
+  width:min(220px, 48vw);
+}
+.gh-hp-label{
+  display:flex;
+  justify-content:space-between;
+  font-family:var(--font-title);
+  font-size:10px;
+  color:var(--teal);
+  margin-bottom:3px;
+}
+.gh-hp-bar{
+  position:relative;
+  height:16px;
+  background:#11222d;
+  border:2px solid var(--cyan);
+  box-shadow:0 0 8px rgba(0,240,255,.3);
+  overflow:hidden;
+}
+.gh-hp-fill{
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:100%;
+  background:linear-gradient(180deg, #9eff5e, var(--lime) 60%, #2ca812);
+  box-shadow:0 0 10px var(--lime);
+  transition:width .18s ease;
+}
+.gh-hp-fill.low{
+  background:linear-gradient(180deg, #ff7066, var(--red) 60%, #a3140b);
+  box-shadow:0 0 10px var(--red);
+}
+.gh-hp-shield{
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:0%;
+  background:rgba(0,240,255,.55);
+  border-right:2px solid #fff;
+  transition:width .18s ease;
+}
+.gh-hp-segs{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  pointer-events:none;
+}
+.gh-hp-segs span{
+  border-right:1px solid rgba(8,16,26,.65);
+}
+.gh-buffs{
+  display:flex;
+  gap:6px;
+  font-family:var(--font-title);
+  font-size:10px;
+}
+.gh-buff{
+  padding:2px 6px;
+  background:rgba(0,240,255,.18);
+  border:1px solid var(--cyan);
+  color:#fff;
+}
+
+.gh-center{
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+.gh-stat{
+  text-align:center;
+  padding:2px 8px;
+  border-left:2px solid rgba(0,240,255,.35);
+}
+.gh-stat small{
+  display:block;
+  font-size:9px;
+  color:var(--teal);
+  letter-spacing:.12em;
+}
+.gh-stat b{
+  font-family:var(--font-title);
+  font-size:13px;
+  color:#fff;
+}
+
+.gh-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.gh-pill{
+  padding:4px 9px;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(0,240,255,.35);
+  font-family:var(--font-title);
+  font-size:12px;
+}
+.gh-pill b{ color:var(--gold); }
+.gh-icon-btn{
+  width:32px;
+  height:32px;
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+  font-size:14px;
+  display:grid;
+  place-items:center;
+  background:rgba(0,240,255,.08);
+  transition:all .15s;
+}
+.gh-icon-btn:hover{
+  background:var(--cyan);
+  color:var(--navy);
+}
+
+/* ---------- Barra de Vida do Boss ---------- */
+.boss-hud{
+  padding:4px 12px;
+  background:rgba(45,8,14,.82);
+  border:1px solid var(--red);
+  box-shadow:0 0 12px rgba(255,59,47,.4);
+}
+.boss-hud-head{
+  display:flex;
+  justify-content:space-between;
+  font-family:var(--font-title);
+  font-size:11px;
+  color:#ffb3ad;
+  margin-bottom:3px;
+}
+.boss-hp-bar{
+  position:relative;
+  height:12px;
+  background:#1a0508;
+  border:1px solid var(--red);
+  overflow:hidden;
+}
+.boss-hp-fill{
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:100%;
+  background:linear-gradient(90deg, #ff3b2f, #ff9a1f);
+  box-shadow:0 0 10px var(--red);
+  transition:width .12s ease;
+}
+.boss-hp-segs{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  pointer-events:none;
+}
+.boss-hp-segs span{
+  border-right:1px solid rgba(0,0,0,.5);
+}
+
+/* ---------- Palco do Canvas 320x180 ---------- */
+.canvas-stage{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  max-height:68vh;
+  margin:0 auto;
+  background:#041118;
+  border:2px solid var(--cyan);
+  box-shadow:0 0 20px rgba(0,240,255,.25), inset 0 0 24px rgba(0,0,0,.8);
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+}
+#gameCanvas{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  display:block;
+}
+
+/* Overlay de papéis cegando a tela */
+.paper-blind-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:5;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(245,248,250,.92) 0 18%, transparent 19%),
+    radial-gradient(circle at 72% 35%, rgba(235,245,250,.92) 0 22%, transparent 23%),
+    radial-gradient(circle at 52% 68%, rgba(245,250,255,.94) 0 24%, transparent 25%),
+    rgba(220,240,245,.45);
+  animation:paperShake .25s infinite alternate;
+}
+@keyframes paperShake{
+  from{ transform:translate(-3px, 2px) rotate(-1deg); }
+  to  { transform:translate(3px, -2px) rotate(1deg); }
+}
+
+/* ---------- Overlay de Fim de Jogo / Vitória / Pausa ---------- */
+.game-overlay{
+  position:absolute;
+  inset:0;
+  z-index:10;
+  background:rgba(4,14,22,.84);
+  backdrop-filter:blur(3px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+}
+.go-box{
+  width:min(480px, 96%);
+  --cut:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+}
+.go-inner{
+  padding:20px 22px;
+  text-align:center;
+}
+.go-title{
+  font-family:var(--font-title);
+  font-size:22px;
+  color:var(--lime);
+  text-shadow:0 0 12px var(--lime);
+}
+.go-title.defeat{
+  color:var(--red);
+  text-shadow:0 0 12px var(--red);
+}
+.go-sub{
+  font-size:12px;
+  color:var(--cyan);
+  margin:4px 0 14px;
+  letter-spacing:.12em;
+}
+.go-stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-bottom:14px;
+}
+.go-Stats-item{
+  padding:8px;
+  background:rgba(10,58,79,.5);
+  border:1px solid rgba(0,240,255,.3);
+}
+.go-Stats-item small{
+  display:block;
+  font-size:10px;
+  color:var(--teal);
+}
+.go-Stats-item b{
+  font-family:var(--font-title);
+  font-size:16px;
+  color:var(--gold);
+}
+.go-loot{
+  padding:10px;
+  margin-bottom:14px;
+  background:rgba(124,255,58,.15);
+  border:1px solid var(--lime);
+  color:var(--lime);
+  font-family:var(--font-title);
+  font-size:12px;
+}
+.go-actions{
+  justify-content:center;
+}
+
+/* ---------- Barra Inferior de Controles (Teclado + Touch) ---------- */
+.game-controls-bar{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.kbd-hints{
+  display:flex;
+  justify-content:center;
+  gap:16px;
+  flex-wrap:wrap;
+  font-size:11px;
+  color:#bfe;
+}
+.kbd-hints b{
+  color:var(--cyan);
+  font-family:var(--font-title);
+  font-size:10px;
+  padding:2px 6px;
+  background:rgba(0,240,255,.12);
+  border:1px solid rgba(0,240,255,.35);
+}
+.kbd-hints small{
+  color:var(--lime);
+  font-weight:700;
+}
+
+.touch-controls{
+  display:none;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding-top:4px;
+}
+.tc-dpad, .tc-actions{
+  display:flex;
+  gap:8px;
+}
+.tc-btn{
+  width:54px;
+  height:48px;
+  background:rgba(10,58,79,.75);
+  border:2px solid var(--cyan);
+  color:#fff;
+  font-family:var(--font-title);
+  font-size:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  touch-action:manipulation;
+}
+.tc-btn small{
+  font-size:8px;
+  color:var(--cyan);
+}
+.tc-btn:active, .tc-btn.pressed{
+  background:var(--lime);
+  border-color:var(--lime);
+  color:var(--navy);
+}
+.tc-btn.tc-atk{ border-color:var(--lime); }
+.tc-btn.tc-skill{ border-color:var(--gold); }
+
+@media (pointer:coarse), (max-width:860px){
+  .touch-controls{ display:flex; }
+  .kbd-hints{ display:none; }
+  .gh-center{ display:none; }
+  .city-bar-inner{ flex-direction:column; align-items:stretch; text-align:center; }
+  .city-currencies, .city-actions{ justify-content:center; }
+}

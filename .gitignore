@@ -1,0 +1,10 @@
+# Arquivos locais de ambiente e segredos privados
+.env
+.env.local
+.env.*.local
+
+# Dependências e arquivos temporários
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

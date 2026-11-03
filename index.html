@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Missões</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/character.css">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- Circuitos decorativos -->
+<svg class="circuit right" viewBox="0 0 400 400" fill="none" stroke="#00F0FF" stroke-width="2">
+  <path d="M400 60 H300 L260 100 V200 L220 240 H120"/><circle cx="114" cy="240" r="6"/>
+  <path d="M400 140 H330 L300 170 V300 L260 340 H160"/><circle cx="154" cy="340" r="6"/>
+  <path d="M400 230 H360 V380"/><circle cx="360" cy="386" r="6"/>
+  <path d="M280 400 V320 L320 280 H400"/><circle cx="260" cy="100" r="4" fill="#00F0FF"/>
+  <circle cx="300" cy="300" r="14"/><circle cx="300" cy="300" r="5" fill="#00F0FF"/>
+</svg>
+<svg class="circuit left" viewBox="0 0 200 300" fill="none" stroke="#00F0FF" stroke-width="2">
+  <path d="M200 20 H120 L90 50 V150 L60 180 H0"/><circle cx="90" cy="100" r="5"/>
+  <path d="M200 120 H150 V260 L120 290 H40"/><circle cx="150" cy="200" r="10"/>
+</svg>
+
+<div class="offline-banner hidden" id="offlineBanner">
+  ⚠ CONEXÃO PERDIDA COM O SERVIDOR CENTRAL — MODO SOMENTE LEITURA (AÇÕES DO SERVIDOR BLOQUEADAS)
+</div>
+
+<!-- ============ TELA DE LOGIN / CADASTRO (SUPABASE AUTH + OAUTH PKCE) ============ -->
+<div class="auth-screen open" id="authScreen">
+  <div class="auth-box hud-glow">
+    <div class="hud-border"><div class="hud-inner auth-inner">
+      <div class="deco-stripes"></div>
+      <div class="auth-header">
+        <span class="auth-badge">ACESSO RESTRITO • PROTOCOLO PKCE</span>
+        <h1 class="auth-title">SISTEMA DE MISSÕES</h1>
+        <p class="auth-sub" id="authSubtitle">IDENTIFIQUE-SE PARA SINCRONIZAR SEU PERFIL E PROGRESSO</p>
+      </div>
+
+      <!-- Alternância Entrar / Criar Conta -->
+      <div class="auth-tabs" id="authTabs">
+        <button type="button" class="auth-tab active" data-auth-mode="login">ENTRAR</button>
+        <button type="button" class="auth-tab" data-auth-mode="signup">CRIAR CONTA</button>
+      </div>
+
+      <div class="auth-msg hidden" id="authMsg"></div>
+
+      <!-- Botões Login Social OAuth 2.0 / OpenID Connect -->
+      <div class="oauth-grid" id="oauthButtons">
+        <button type="button" class="oauth-btn" data-oauth="google">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81Z"/></svg>
+          <span>ENTRAR COM GOOGLE</span>
+        </button>
+        <button type="button" class="oauth-btn" data-oauth="discord">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.03.01.06.02.09.01 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02ZM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12Zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12Z"/></svg>
+          <span>ENTRAR COM DISCORD</span>
+        </button>
+        <button type="button" class="oauth-btn" data-oauth="github">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2Z"/></svg>
+          <span>ENTRAR COM GITHUB</span>
+        </button>
+      </div>
+
+      <div class="or-sep" id="authOrSep">— OU E-MAIL E SENHA —</div>
+
+      <!-- Formulário E-mail / Senha / Recuperação -->
+      <form id="authForm" autocomplete="on">
+        <div class="field hidden" id="authUsernameField">
+          <label for="authUsername">CODINOME DO AGENTE (USERNAME)</label>
+          <input type="text" class="input" id="authUsername" maxlength="24" placeholder="Ex.: agente_kira">
+        </div>
+        <div class="field" id="authEmailField">
+          <label for="authEmail">E-MAIL DO AGENTE</label>
+          <input type="email" class="input" id="authEmail" required placeholder="seu@email.com">
+        </div>
+        <div class="field" id="authPasswordField">
+          <label for="authPassword">SENHA DE ACESSO (MÍN. 8 CARACTERES)</label>
+          <input type="password" class="input" id="authPassword" minlength="8" placeholder="••••••••">
+          <div class="pwd-strength hidden" id="pwdStrengthHint">MÍNIMO DE 8 CARACTERES</div>
+        </div>
+        <button type="submit" class="btn green" id="authSubmitBtn" style="width:100%;margin-top:6px">
+          ENTRAR NO SISTEMA
+        </button>
+      </form>
+
+      <div class="auth-links">
+        <button type="button" class="link-btn" id="forgotPwdBtn">ESQUECI MINHA SENHA</button>
+        <button type="button" class="link-btn hidden" id="backToLoginBtn">← VOLTAR AO LOGIN</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="app hidden" id="mainApp">
+
+  <!-- ============ TOPO: BARRA DE XP + NÍVEL ============ -->
+  <header class="topbar">
+    <button class="avatar-btn hidden" id="avatarBtn" title="Ver perfil do personagem">
+      <canvas class="sprite idle" id="avatarCanvas"></canvas>
+      <span id="avatarName">PERFIL</span>
+    </button>
+    <div class="xp-block">
+      <div class="xp-tag" id="xpTag">0%</div>
+      <div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="xpBar">
+        <div class="xp-fill" id="xpFill"></div>
+        <div class="xp-segments" id="xpSegments"></div>
+      </div>
+      <div class="xp-info">
+        <span id="xpText">XP 0 / 100</span>
+        <span class="hud-sync-pill" id="hudSyncStatus">● ONLINE</span>
+        <span class="streak" id="streakText">SEQUÊNCIA: 0 DIAS</span>
+      </div>
+    </div>
+    <div class="level-num" id="levelNum" title="Nível atual">1<span class="level-label">NÍVEL</span></div>
+    <div class="topbar-actions">
+      <button type="button" class="hud-top-btn" id="accountSettingsBtn" title="Configurações da Conta">⚙ CONTA</button>
+      <button type="button" class="hud-top-btn danger" id="logoutBtn" title="Encerrar Sessão">⏻ SAIR</button>
+    </div>
+  </header>
+
+  <!-- ============ PAINEL ESQUERDO: CONQUISTAS ============ -->
+  <aside class="ach-wrap">
+    <div class="hud-glow ach-panel">
+      <div class="hud-border"><div class="hud-inner">
+        <div class="panel-title">CONQUISTAS</div>
+        <ul class="ach-list" id="achList"></ul>
+      </div></div>
+    </div>
+  </aside>
+
+  <!-- ============ PAINEL CENTRAL: MISSÕES / DIÁRIO ============ -->
+  <main class="main-wrap">
+    <nav class="main-tabs">
+      <button class="tab-btn active" data-tab="missions">MISSÕES</button>
+      <button class="tab-btn" data-tab="diary">DIÁRIO DE MISSÕES</button>
+    </nav>
+    <div class="hud-glow main-panel">
+      <div class="hud-border"><div class="hud-inner">
+        <div class="deco-stripes"></div>
+        <div class="deco-corner bl"></div>
+
+        <!-- Aba Missões -->
+        <section id="tabMissions">
+          <div class="panel-head">
+            <h2>MISSÕES DIÁRIAS <span class="counter" id="taskCounter">0/15</span></h2>
+            <button class="small-btn" id="manageBtn">⚙ EDITAR MISSÕES</button>
+          </div>
+          <ul class="mission-list" id="missionList"></ul>
+        </section>
+
+        <!-- Aba Diário -->
+        <section id="tabDiary" class="hidden">
+          <div class="panel-head">
+            <h2>DIÁRIO DE MISSÕES</h2>
+            <button class="small-btn hidden" id="clearFilterBtn">✕ VER TODOS</button>
+          </div>
+          <div class="diary-grid">
+            <div>
+              <div class="calendar">
+                <div class="cal-head">
+                  <button id="calPrev" aria-label="Mês anterior">‹</button>
+                  <span id="calTitle"></span>
+                  <button id="calNext" aria-label="Próximo mês">›</button>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+              </div>
+              <div class="diary-stats" id="diaryStats"></div>
+            </div>
+            <div class="diary-list" id="diaryList"></div>
+          </div>
+        </section>
+      </div></div>
+    </div>
+  </main>
+
+  <!-- ============ RODAPÉ ============ -->
+  <footer class="footer">
+    <div class="city-launch-bar hud-glow">
+      <div class="hud-border"><div class="hud-inner city-bar-inner">
+        <div class="city-currencies">
+          <div class="curr-pill" title="Fichas de Entrada (Ganhe concluindo missões!)">
+            <span class="curr-ico">🎫</span>
+            <div><small>FICHAS</small><b id="cityTicketsCount">0</b></div>
+          </div>
+          <div class="curr-pill" title="Moedas Cyber (Ganhe na Cidade)">
+            <span class="curr-ico">🪙</span>
+            <div><small>MOEDAS</small><b id="cityCoinsCount">0</b></div>
+          </div>
+          <div class="curr-pill xp-cap-pill" title="Limite diário de XP ganho em combate na Cidade (30% do nível)">
+            <span class="curr-ico">⚡</span>
+            <div><small>XP CIDADE HOJE</small><b id="cityDailyXPText">0/30</b></div>
+          </div>
+        </div>
+        <div class="city-actions">
+          <button type="button" class="city-play-btn" id="startCityMissionBtn">
+            <span class="play-title">▶ INICIAR MISSÃO NA CIDADE</span>
+            <span class="play-sub">CUSTO: 1 FICHA • RECOMPENSA: XP + MOEDAS</span>
+          </button>
+          <button type="button" class="small-btn city-shop-btn" id="openCityShopBtn">🛒 LOJA &amp; UPGRADES</button>
+        </div>
+      </div></div>
+    </div>
+    <button class="add-btn" id="addBtn">ADICIONAR MAIS ATIVIDADES</button>
+    <div class="red-bars"><span style="width:90px"></span><span style="width:40px"></span><span style="width:120px"></span></div>
+    <div class="limit-msg hidden" id="limitMsg">LIMITE DE MISSÕES ATINGIDO</div>
+  </footer>
+</div>
+
+<!-- ============ MODAL: GERENCIAR TAREFAS ============ -->
+<div class="modal" id="taskModal">
+  <div class="modal-box wide hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title" id="taskModalTitle">NOVA MISSÃO</div>
+      <div class="modal-sub" id="taskModalSub">DEFINA O NOME E A DIFICULDADE DA ATIVIDADE.</div>
+      <form id="taskForm" autocomplete="off">
+        <input type="hidden" id="taskEditId">
+        <div class="field">
+          <label for="taskName">NOME DA TAREFA</label>
+          <input class="input" id="taskName" maxlength="60" placeholder="Ex.: Ler livro">
+        </div>
+        <div class="field">
+          <label for="taskCategory">CATEGORIA (OPCIONAL — BÔNUS DE CLASSE)</label>
+          <select class="input" id="taskCategory"></select>
+        </div>
+        <div class="field">
+          <label>DIFICULDADE</label>
+          <div class="diff-options" id="diffOptions"></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn ghost hidden" id="cancelEditBtn">CANCELAR EDIÇÃO</button>
+          <button type="submit" class="btn green" id="saveTaskBtn">SALVAR MISSÃO</button>
+        </div>
+      </form>
+      <div class="panel-title" style="margin-top:22px;margin-bottom:0">SUAS MISSÕES — EDITAR / EXCLUIR</div>
+      <ul class="task-admin" id="taskAdminList"></ul>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: REGISTRO DE PROGRESSO ============ -->
+<div class="modal" id="logModal">
+  <div class="modal-box hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title" id="logTitle">REGISTRO</div>
+      <div class="modal-sub" id="logSub"></div>
+      <div class="field">
+        <label for="logText">DESCREVA O QUE VOCÊ FEZ HOJE</label>
+        <textarea class="input" id="logText" maxlength="1000" placeholder="Ex.: Li 20 páginas do capítulo 3..."></textarea>
+      </div>
+      <div class="or-sep">— OU —</div>
+      <div class="field">
+        <label>ENVIE UMA FOTO COMO PROVA (PNG, JPG OU WEBP • MÁX. 5 MB)</label>
+        <label class="photo-drop" for="logPhoto" id="photoDrop">📷 TOCAR PARA ESCOLHER / TIRAR FOTO</label>
+        <input type="file" id="logPhoto" accept="image/png,image/jpeg,image/webp" class="hidden">
+        <div class="photo-preview hidden" id="photoPreview">
+          <img id="photoImg" alt="Prévia da foto">
+          <button type="button" id="removePhoto" aria-label="Remover foto">✕</button>
+        </div>
+      </div>
+      <div class="req-hint" id="reqHint">⚠ ENVIE UMA FOTO OU ESCREVA UMA DESCRIÇÃO PARA CONCLUIR.</div>
+      <div class="btn-row">
+        <button class="btn ghost" data-close>CANCELAR</button>
+        <button class="btn green" id="completeBtn" disabled>CONCLUIR MISSÃO</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: FOTO AMPLIADA ============ -->
+<div class="modal lightbox" id="lightbox"><img id="lightboxImg" alt="Foto do registro"></div>
+
+<!-- ============ LEVEL UP ============ -->
+<div class="levelup" id="levelUp">
+  <div class="levelup-ring"></div>
+  <div class="levelup-text">
+    <canvas class="sprite lvl hidden" id="levelUpSprite"></canvas>
+    <h1>LEVEL UP!</h1>
+    <p id="levelUpText">NÍVEL 2</p>
+    <div class="weapon-up hidden" id="weaponUp"></div>
+    <small>TOQUE PARA CONTINUAR</small>
+  </div>
+</div>
+
+<!-- ============ TELA: CRIAÇÃO / EDIÇÃO DE PERSONAGEM ============ -->
+<div class="char-screen" id="charScreen">
+  <div class="char-box hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <div class="deco-stripes"></div>
+      <div class="modal-title" id="charTitle">CRIAÇÃO DE PERSONAGEM</div>
+      <div class="modal-sub" id="charSub">BEM-VINDO AO SISTEMA. CRIE SEU AVATAR PARA INICIAR.</div>
+
+      <div class="char-grid">
+        <div class="char-left">
+          <div class="char-stage">
+            <canvas class="sprite big idle" id="charPreview"></canvas>
+          </div>
+          <div class="field">
+            <label for="charName">NOME DO PERSONAGEM (MÁX. 16)</label>
+            <input class="input" id="charName" maxlength="16" placeholder="Ex.: Kira">
+          </div>
+          <div class="char-tools">
+            <button type="button" class="btn ghost" id="charRandom">🎲 ALEATÓRIO</button>
+            <button type="button" class="btn ghost" id="charReset">↺ RESETAR</button>
+          </div>
+          <div class="class-card" id="classCard"></div>
+        </div>
+
+        <div class="char-options" id="charOptions"></div>
+      </div>
+
+      <div class="btn-row char-actions">
+        <button type="button" class="btn ghost hidden" id="charCancel">CANCELAR</button>
+        <button type="button" class="btn green" id="charConfirm">INICIAR JORNADA</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: PERFIL DO PERSONAGEM ============ -->
+<div class="modal" id="profileModal">
+  <div class="modal-box wide hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title">PERFIL DO AGENTE</div>
+      <div class="modal-sub">DADOS DE PROGRESSÃO E EQUIPAMENTO ATUAL.</div>
+
+      <div class="profile-grid">
+        <div>
+          <div class="char-stage">
+            <canvas class="sprite big idle" id="profileSprite"></canvas>
+          </div>
+          <div class="profile-name" id="profileName"></div>
+        </div>
+        <div class="profile-info" id="profileInfo"></div>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button type="button" class="btn ghost" data-close>FECHAR</button>
+        <button type="button" class="btn green" id="editCharBtn">✎ EDITAR APARÊNCIA / CLASSE</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: LOJA & UPGRADES DA CIDADE ============ -->
+<div class="modal" id="shopModal">
+  <div class="modal-box wide hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title">ARSENAL &amp; MERCADO NEON</div>
+      <div class="modal-sub">APRIMORE SEUS ATRIBUTOS DE COMBATE E DESBLOQUEIE COSMÉTICOS EXCLUSIVOS.</div>
+      <div class="shop-balance">
+        <span>🪙 MOEDAS DISPONÍVEIS: <b id="shopCoinsVal">0</b></span>
+        <span>🎫 FICHAS: <b id="shopTicketsVal">0</b></span>
+      </div>
+      <div class="shop-sections" id="shopContent"></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button type="button" class="btn ghost" data-close>FECHAR</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ TELA DO JOGO: MISSÃO NA CIDADE (2D PIXEL ART) ============ -->
+<div class="game-screen" id="gameScreen">
+  <div class="game-frame hud-glow">
+    <div class="hud-border"><div class="hud-inner game-inner">
+      <!-- Top HUD bar -->
+      <div class="game-hud">
+        <div class="gh-left">
+          <div class="gh-avatar">
+            <canvas class="sprite" id="ghAvatarCanvas"></canvas>
+            <div>
+              <div class="gh-name" id="ghCharName">AGENTE</div>
+              <div class="gh-lvl" id="ghCharClass">NV 1 • GUERREIRO</div>
+            </div>
+          </div>
+          <div class="gh-hp-wrap">
+            <div class="gh-hp-label"><span>INTEGRIDADE</span><span id="ghHpText">100/100</span></div>
+            <div class="gh-hp-bar" id="ghHpBar">
+              <div class="gh-hp-fill" id="ghHpFill"></div>
+              <div class="gh-hp-shield" id="ghShieldFill"></div>
+              <div class="gh-hp-segs"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="gh-buffs" id="ghBuffs"></div>
+        </div>
+
+        <div class="gh-center">
+          <div class="gh-stat"><small>DISTÂNCIA</small><b id="ghDist">0m</b></div>
+          <div class="gh-stat"><small>SEGMENTO</small><b id="ghSeg">1/7</b></div>
+          <div class="gh-stat"><small>CLIMA</small><b id="ghWeather">NOITE LIMPA</b></div>
+        </div>
+
+        <div class="gh-right">
+          <div class="gh-pill" title="Moedas coletadas na missão">🪙 <b id="ghCoins">0</b></div>
+          <div class="gh-pill" title="XP ganho na missão">⚡ <b id="ghXP">+0 XP</b></div>
+          <div class="gh-pill" title="Fichas restantes">🎫 <b id="ghTickets">0</b></div>
+          <button type="button" class="gh-icon-btn" id="gameMuteBtn" title="Alternar Som">🔊</button>
+          <button type="button" class="gh-icon-btn" id="gamePauseBtn" title="Pausar / Sair (ESC)">⏸</button>
+        </div>
+      </div>
+
+      <!-- Boss HP Bar (aparece na arena do Boss) -->
+      <div class="boss-hud hidden" id="bossHud">
+        <div class="boss-hud-head">
+          <span id="bossName">MECHA-DIRETOR SUPREMO MK-I</span>
+          <span id="bossPhaseTxt">FASE 1/3</span>
+        </div>
+        <div class="boss-hp-bar">
+          <div class="boss-hp-fill" id="bossHpFill"></div>
+          <div class="boss-hp-segs"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <!-- Canvas 320x180 escalado -->
+      <div class="canvas-stage">
+        <canvas id="gameCanvas" width="320" height="180"></canvas>
+
+        <!-- Efeito de papéis cegando a tela -->
+        <div class="paper-blind-overlay hidden" id="paperBlindOverlay"></div>
+
+        <!-- Overlay de Pausa / Fim de Partida / Vitória -->
+        <div class="game-overlay hidden" id="gameOverlay">
+          <div class="go-box hud-glow">
+            <div class="hud-border"><div class="hud-inner go-inner">
+              <div class="go-title" id="goTitle">MISSÃO CONCLUÍDA</div>
+              <div class="go-sub" id="goSub">RELATÓRIO DE OPERAÇÃO URBANA</div>
+              <div class="go-stats" id="goStats"></div>
+              <div class="go-loot hidden" id="goLoot"></div>
+              <div class="btn-row go-actions" id="goActions"></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de controles & Touch -->
+      <div class="game-controls-bar">
+        <div class="kbd-hints">
+          <span><b>WASD / ← ↑ → ↓</b> MOVIMENTAÇÃO</span>
+          <span><b>BACKSPACE</b> PULAR</span>
+          <span><b>R</b> ESPECIAL <small id="ghSkillCd">PRONTA</small></span>
+          <span><b>BOTÃO ESQUERDO DO MOUSE</b> ATAQUE SIMPLES</span>
+        </div>
+        <!-- Botões Touch para celular / tablet -->
+        <div class="touch-controls" id="touchControls">
+          <div class="tc-dpad">
+            <button type="button" class="tc-btn" data-key="left" aria-label="Mover Esquerda">◀</button>
+            <button type="button" class="tc-btn" data-key="down" aria-label="Agachar">▼</button>
+            <button type="button" class="tc-btn" data-key="right" aria-label="Mover Direita">▶</button>
+          </div>
+          <div class="tc-actions">
+            <button type="button" class="tc-btn tc-skill" data-key="skill" aria-label="Habilidade Especial">⚡<small>HAB</small></button>
+            <button type="button" class="tc-btn tc-atk" data-key="attack" aria-label="Atacar">⚔<small>ATK</small></button>
+            <button type="button" class="tc-btn tc-jump" data-key="jump" aria-label="Pular">▲<small>PULO</small></button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<!-- ============ MODAL: CONFIGURAÇÕES DA CONTA (SUPABASE AUTH) ============ -->
+<div class="modal" id="accountModal">
+  <div class="modal-box wide hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title">CONFIGURAÇÕES DA CONTA</div>
+      <div class="modal-sub" id="accountEmailDisplay">GERENCIE SEU CODINOME, SENHA, PROVEDORES OAUTH E DADOS</div>
+
+      <!-- 1. Alterar Nome de Usuário -->
+      <div class="settings-sec">
+        <h3>1. CODINOME DO AGENTE (USERNAME ÚNICO)</h3>
+        <form id="usernameForm" style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="text" class="input" id="settingsUsername" maxlength="24" placeholder="novo_username" style="flex:1;min-width:200px">
+          <button type="submit" class="btn green" id="saveUsernameBtn">SALVAR NOME</button>
+        </form>
+      </div>
+
+      <!-- 2. Alterar Senha -->
+      <div class="settings-sec">
+        <h3>2. ALTERAR SENHA DE ACESSO (MÍN. 8 CARACTERES)</h3>
+        <form id="passwordForm" style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="password" class="input" id="settingsNewPassword" minlength="8" placeholder="Nova senha forte (mín. 8 caracteres)" style="flex:1;min-width:200px">
+          <button type="submit" class="btn green" id="savePasswordBtn">ATUALIZAR SENHA</button>
+        </form>
+      </div>
+
+      <!-- 3. Provedores Conectados (Vincular / Desvincular Identidades OAuth) -->
+      <div class="settings-sec">
+        <h3>3. PROVEDORES SOCIAIS CONECTADOS (OAUTH 2.0 / OIDC)</h3>
+        <p style="font-size:12px;opacity:.8;margin-bottom:10px;text-transform:none">
+          Vincule ou desvincule métodos de login à sua conta sem duplicar seu perfil.
+        </p>
+        <div class="provider-list" id="providersList"></div>
+      </div>
+
+      <!-- 4. Zona de Perigo: Excluir Conta -->
+      <div class="settings-sec danger-zone">
+        <h3>4. ZONA DE PERIGO — EXCLUIR CONTA PERMANENTEMENTE</h3>
+        <p style="font-size:12px;opacity:.85;margin-bottom:10px;text-transform:none">
+          Esta ação apagará seu perfil, personagem, missões, fotos do Storage, conquistas e histórico do banco de dados.
+        </p>
+        <button type="button" class="btn red" id="deleteAccountBtn">🗑 EXCLUIR MINHA CONTA E TODOS OS DADOS</button>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn ghost" data-close>FECHAR</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: MIGRAÇÃO DO LOCALSTORAGE PARA O BANCO ============ -->
+<div class="modal" id="migrationModal">
+  <div class="modal-box hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <div class="modal-title">DADOS LOCAIS DETECTADOS!</div>
+      <div class="modal-sub">ENCONTRAMOS UM PROGRESSO SALVO NESTE NAVEGADOR (LOCALSTORAGE).</div>
+      <p id="migrationSummary" style="font-size:14px;line-height:1.5;margin-bottom:18px;color:#dff"></p>
+      <div class="btn-row">
+        <button type="button" class="btn ghost" id="skipMigrationBtn">IGNORAR DADOS LOCAIS</button>
+        <button type="button" class="btn green" id="confirmMigrationBtn">⬆ IMPORTAR PARA MINHA CONTA</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- SDK Oficial @supabase/supabase-js v2 + Módulos do Sistema -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/env.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/character.js"></script>
+<script src="js/game.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>

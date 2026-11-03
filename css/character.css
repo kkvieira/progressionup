@@ -1,0 +1,170 @@
+/* =====================================================================
+   Sistema de Missões — Estilos do PERSONAGEM
+   (usa as variáveis de cor definidas em style.css)
+   ===================================================================== */
+
+/* ---------- Sprites pixel art (sem suavização) ---------- */
+.sprite{
+  display:block;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  aspect-ratio:1/1;
+}
+.sprite.big{ width:min(260px,58vw); height:auto; }
+.sprite.idle{ animation:idleBob 1.4s steps(2) infinite; }
+@keyframes idleBob{ 50%{ transform:translateY(-4%); } }
+
+/* Brilho da arma conforme o tier (aplicado ao sprite inteiro) */
+.sprite[data-tier="1"]{ filter:drop-shadow(0 0 2px rgba(208,138,69,.7)); }
+.sprite[data-tier="2"]{ filter:drop-shadow(0 0 4px rgba(207,232,255,.9)); }
+.sprite[data-tier="3"]{ filter:drop-shadow(0 0 6px rgba(255,210,58,.95)); }
+.sprite[data-tier="4"]{ animation:legend 1.6s ease-in-out infinite; }
+.sprite.idle[data-tier="4"]{ animation:idleBob 1.4s steps(2) infinite, legend 1.6s ease-in-out infinite; }
+@keyframes legend{
+  0%,100%{ filter:drop-shadow(0 0 5px var(--cyan)) drop-shadow(0 0 2px var(--lime)); }
+  50%    { filter:drop-shadow(0 0 12px var(--cyan)) drop-shadow(0 0 6px var(--lime)); }
+}
+
+/* Palco da prévia: grade holográfica */
+.char-stage{
+  position:relative; display:grid; place-items:center; padding:16px;
+  background:
+    radial-gradient(circle at 50% 62%, rgba(31,209,176,.28), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(0,240,255,.08) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(90deg, rgba(0,240,255,.08) 0 1px, transparent 1px 18px),
+    rgba(10,58,79,.35);
+  border:2px solid rgba(0,240,255,.45);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+}
+.char-stage::after{
+  content:""; position:absolute; left:20%; right:20%; bottom:12px; height:8px;
+  background:radial-gradient(ellipse, rgba(124,255,58,.55), transparent 70%);
+}
+
+/* ---------- Botão/avatar no topo ---------- */
+.avatar-btn{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:6px 10px 5px; min-width:84px;
+  background:rgba(11,22,36,.88); border:2px solid var(--cyan);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  box-shadow:inset 0 0 12px rgba(0,240,255,.25);
+  transition:transform .15s, box-shadow .2s, border-color .2s;
+}
+.avatar-btn canvas{ width:58px; }
+.avatar-btn span{ font-family:var(--font-title); font-size:10px; max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--lime); }
+.avatar-btn:hover{ transform:translateY(-2px); border-color:var(--lime); box-shadow:inset 0 0 16px rgba(124,255,58,.4); }
+.topbar{ flex-wrap:wrap; }
+
+/* ---------- Tela de criação / edição ---------- */
+body.no-scroll{ overflow:hidden; }
+.char-screen{
+  position:fixed; inset:0; z-index:70; display:none; overflow:auto; padding:16px;
+  background:rgba(2,12,18,.8); backdrop-filter:blur(4px);
+}
+.char-screen.open{ display:flex; animation:fade .3s ease; }
+.char-box{ width:min(1060px,100%); margin:auto; animation:modalIn .4s cubic-bezier(.2,1.3,.4,1); }
+.char-box .hud-border{ --cut:polygon(30px 0,100% 0,100% calc(100% - 30px),calc(100% - 30px) 100%,0 100%,0 30px); }
+.char-box .hud-inner{ padding:26px 28px 24px; }
+.char-box .deco-stripes{ top:14px; right:40px; width:140px; }
+.char-grid{ display:grid; grid-template-columns:320px 1fr; gap:26px; margin-top:8px; }
+.char-left{ display:flex; flex-direction:column; gap:14px; }
+.char-left .field{ margin:0; }
+.char-tools{ display:flex; gap:8px; }
+.char-tools .btn{ flex:1; }
+.char-options{ max-height:64vh; overflow:auto; padding-right:8px; }
+.char-options::-webkit-scrollbar{ width:6px; } .char-options::-webkit-scrollbar-thumb{ background:var(--teal); }
+.char-actions{ margin-top:18px; border-top:1px dashed rgba(0,240,255,.35); padding-top:16px; }
+.char-actions .btn{ font-size:15px; padding:13px 28px; }
+
+/* Linhas de opção ◀ valor ▶ + miniaturas */
+.opt-row{ padding:10px 0 8px; border-bottom:1px dashed rgba(0,240,255,.22); }
+.opt-label{ font-size:12px; font-weight:700; color:var(--teal); letter-spacing:.18em; margin-bottom:6px; }
+.opt-ctrl{ display:flex; align-items:center; gap:8px; }
+.arrow{
+  flex:0 0 36px; height:36px; color:var(--cyan); border:2px solid var(--cyan); font-size:14px;
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+  transition:all .15s;
+}
+.arrow:hover{ background:var(--lime); border-color:var(--lime); color:var(--navy); box-shadow:0 0 10px var(--lime); }
+.arrow:active{ transform:scale(.92); }
+.opt-value{
+  flex:1; min-height:42px; display:flex; align-items:center; gap:10px; padding:3px 12px;
+  background:rgba(10,58,79,.55); border-left:3px solid var(--lime);
+  font-family:var(--font-title); font-size:13px;
+}
+.opt-value canvas{ width:36px; }
+.opt-value .sw{ width:24px; height:24px; border:2px solid #fff; box-shadow:0 0 6px rgba(255,255,255,.4); }
+.opt-value .ico{ font-size:22px; }
+.opt-name{ flex:1; }
+.opt-count{ font-family:var(--font-body); font-size:12px; opacity:.6; }
+.opt-thumbs{ display:flex; gap:6px; overflow-x:auto; padding:8px 2px 4px; scrollbar-width:thin; scrollbar-color:var(--teal) transparent; }
+.thumb{
+  flex:0 0 auto; padding:2px; background:rgba(10,58,79,.55);
+  border:2px solid rgba(255,255,255,.18); transition:border-color .15s, box-shadow .15s, transform .15s;
+}
+.thumb canvas{ width:34px; }
+.thumb.swatch{ width:28px; height:28px; }
+.thumb.icon{ width:42px; height:42px; font-size:20px; display:grid; place-items:center; }
+.thumb:hover{ transform:translateY(-2px); border-color:var(--cyan); }
+.thumb.sel{ border-color:var(--lime); box-shadow:0 0 10px var(--lime); }
+
+/* Cartão da classe */
+.class-card{ background:rgba(10,58,79,.45); border:1px solid rgba(0,240,255,.35); padding:12px; display:flex; flex-direction:column; gap:10px; }
+.cc-head{ display:flex; gap:10px; align-items:flex-start; }
+.cc-icon{ font-size:28px; line-height:1; filter:drop-shadow(0 0 6px rgba(0,240,255,.6)); }
+.cc-head b, .pf-class b{ font-family:var(--font-title); color:var(--lime); font-size:15px; display:block; }
+.cc-head small{ display:block; text-transform:none; letter-spacing:0; font-size:13px; opacity:.85; margin-top:2px; }
+.cc-weapon{ display:flex; gap:10px; align-items:center; }
+.cc-weapon canvas{ width:54px; flex:0 0 auto; background:rgba(0,0,0,.25); border:1px solid rgba(0,240,255,.35); }
+.cc-weapon small, .pf-weapon small, .pf-class small{ display:block; font-size:11px; color:var(--teal); letter-spacing:.15em; }
+.cc-weapon b{ font-family:var(--font-title); font-size:12px; display:block; }
+.cc-bonus{ display:inline-block; margin-top:4px; font-size:11px; font-weight:700; color:var(--navy); background:var(--lime); padding:2px 6px; }
+
+/* ---------- Categoria nas missões ---------- */
+.cat-badge{ padding:1px 7px; border:1px solid rgba(255,255,255,.4); color:#dff; letter-spacing:.08em; }
+.class-bonus{ padding:1px 7px; background:var(--lime); color:var(--navy); }
+.mission-meta{ flex-wrap:wrap; }
+
+/* ---------- Perfil ---------- */
+.profile-grid{ display:grid; grid-template-columns:280px 1fr; gap:24px; margin-top:12px; }
+.profile-name{ text-align:center; font-family:var(--font-title); font-size:20px; color:var(--lime); text-shadow:0 0 8px var(--lime); margin-top:10px; word-break:break-word; }
+.profile-info{ display:flex; flex-direction:column; gap:14px; }
+.pf-class, .pf-weapon{ display:flex; gap:12px; align-items:flex-start; padding:12px; background:rgba(10,58,79,.45); border-left:3px solid var(--cyan); }
+.pf-class p{ text-transform:none; letter-spacing:0; font-size:14px; opacity:.85; margin:2px 0; }
+.pf-weapon canvas{ width:72px; flex:0 0 auto; background:rgba(0,0,0,.25); border:1px solid rgba(0,240,255,.35); }
+.tier-txt{ font-family:var(--font-title); font-size:14px; display:block; margin:2px 0 6px; }
+.tier-txt.t1{ color:#E39A55; } .tier-txt.t2{ color:#E8F2FF; text-shadow:0 0 6px #cfe8ff; }
+.tier-txt.t3{ color:#FFD23A; text-shadow:0 0 8px #FFD23A; } .tier-txt.t4{ color:var(--lime); text-shadow:0 0 8px var(--lime), 0 0 14px var(--cyan); }
+.tier-track{ display:flex; gap:4px; margin-bottom:6px; }
+.tier-track span{ width:30px; height:8px; background:rgba(255,255,255,.15); transform:skewX(-30deg); }
+.tier-track span.on.t0{ background:#C9D3DC; } .tier-track span.on.t1{ background:#D08A45; }
+.tier-track span.on.t2{ background:#F0F6FF; } .tier-track span.on.t3{ background:#FFD23A; }
+.tier-track span.on.t4{ background:var(--lime); box-shadow:0 0 8px var(--lime); }
+.pf-stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.pf-stats div{ padding:10px 8px; text-align:center; background:rgba(10,58,79,.45); border:1px solid rgba(0,240,255,.3);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); }
+.pf-stats small{ display:block; font-size:10px; color:var(--teal); letter-spacing:.1em; }
+.pf-stats b{ font-family:var(--font-title); font-size:20px; color:var(--gold); text-shadow:0 0 6px rgba(255,194,26,.5); }
+
+/* ---------- Level up: personagem comemorando ---------- */
+.sprite.lvl{ width:clamp(110px,22vw,170px); margin:0 auto 4px; }
+.sprite.lvl.celebrate{ animation:celebrate .5s ease-in-out 6 alternate, legend 1.6s ease-in-out infinite; }
+@keyframes celebrate{
+  from{ transform:translateY(0) scale(1); }
+  to  { transform:translateY(-26px) scale(1.06); filter:brightness(1.4) drop-shadow(0 0 14px var(--lime)); }
+}
+.weapon-up{ margin-top:10px; font-family:var(--font-title); font-size:clamp(12px,2.4vw,16px); color:var(--cyan); text-shadow:0 0 10px var(--cyan); animation:fade .6s ease .4s both; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width:860px){
+  .char-grid, .profile-grid{ grid-template-columns:1fr; }
+  .char-options{ max-height:none; overflow:visible; }
+  .char-box .hud-inner{ padding:22px 16px 18px; }
+  .sprite.big{ width:min(200px,52vw); }
+  .pf-stats{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:480px){
+  .avatar-btn{ min-width:70px; padding:4px 6px; }
+  .avatar-btn canvas{ width:46px; }
+  .char-actions .btn{ width:100%; }
+}
