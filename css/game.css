@@ -633,6 +633,100 @@
   .touch-controls{ display:flex; }
   .kbd-hints{ display:none; }
   .gh-center{ display:none; }
-  .city-bar-inner{ flex-direction:column; align-items:stretch; text-align:center; }
+  .city-bar-inner{ flex-direction:column; align-items:stretch; text-align:center; padding:12px 14px; gap:12px; }
   .city-currencies, .city-actions{ justify-content:center; }
+
+  /* Evita que o modal de Pausa / Fim de Partida fique cortado dentro do canvas 16:9 no celular */
+  .game-overlay{
+    position:fixed;
+    inset:0;
+    z-index:85;
+    overflow-y:auto;
+    padding:16px;
+  }
+  .tc-btn{
+    -webkit-touch-callout:none;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+}
+
+@media (max-width:600px){
+  /* Barra da Cidade no rodapé do celular */
+  .city-currencies{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:6px;
+    width:100%;
+  }
+  .curr-pill{
+    flex-direction:column;
+    gap:3px;
+    padding:6px 4px;
+    text-align:center;
+  }
+  .curr-ico{ font-size:16px; }
+  .curr-pill small{ font-size:8px; letter-spacing:.06em; }
+  .curr-pill b, .curr-pill.xp-cap-pill b{ font-size:13px; }
+  .city-actions{
+    flex-direction:column;
+    width:100%;
+    gap:8px;
+  }
+  .city-play-btn, .city-shop-btn{
+    width:100%;
+    text-align:center;
+  }
+  .city-play-btn{ padding:10px 14px; }
+  .city-play-btn .play-title{ font-size:13px; }
+  .city-play-btn .play-sub{ font-size:9px; }
+
+  /* Loja em coluna única no celular */
+  .shop-grid{ grid-template-columns:1fr; }
+  .shop-balance{ gap:10px; font-size:11px; justify-content:space-between; }
+
+  /* Tela do Jogo 2D otimizada para celular em modo retrato */
+  .game-screen{ padding:4px; }
+  .game-frame{
+    width:100%;
+    max-height:100dvh;
+    --cut:polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+  }
+  .game-inner{ padding:8px 8px 10px; gap:6px; }
+  .game-hud{ padding:5px 8px; gap:6px; }
+  .gh-left{ width:100%; justify-content:space-between; gap:8px; }
+  .gh-avatar canvas{ width:30px; height:30px; }
+  .gh-name{ font-size:11px; }
+  .gh-lvl{ font-size:9px; }
+  .gh-hp-wrap{ flex:1; min-width:110px; max-width:none; }
+  .gh-hp-bar{ height:13px; }
+  .gh-right{ width:100%; justify-content:space-between; gap:4px; }
+  .gh-pill{ padding:3px 6px; font-size:10px; flex:1; text-align:center; }
+  .gh-icon-btn{ width:30px; height:30px; font-size:13px; }
+
+  /* Controles Touch mais confortáveis para os polegares */
+  .touch-controls{ gap:6px; padding-top:6px; }
+  .tc-dpad, .tc-actions{ gap:6px; }
+  .tc-btn{
+    width:clamp(46px, 14vw, 58px);
+    height:50px;
+    font-size:15px;
+  }
+  .go-inner{ padding:16px 14px; }
+  .go-title{ font-size:18px; }
+  .go-actions .btn{ width:100%; text-align:center; }
+}
+
+/* Modo Paisagem (Landscape) em celulares durante o jogo */
+@media (max-height:520px) and (orientation:landscape){
+  .game-screen{ padding:2px; }
+  .game-inner{ padding:4px 8px 6px; gap:4px; }
+  .game-hud{ padding:3px 8px; gap:8px; flex-wrap:nowrap; }
+  .gh-left{ width:auto; flex-wrap:nowrap; }
+  .gh-right{ width:auto; }
+  .gh-avatar canvas{ width:26px; height:26px; }
+  .gh-hp-wrap{ width:130px; }
+  .canvas-stage{ max-height:56dvh; }
+  .touch-controls{ padding-top:2px; }
+  .tc-btn{ width:48px; height:38px; font-size:13px; }
 }

@@ -569,29 +569,154 @@ select.input option{ background:var(--navy); }
 .danger-zone h3{ color:var(--red); }
 
 /* =====================================================================
-   11. RESPONSIVO
+   11. RESPONSIVO (TABLETS E DISPOSITIVOS MÓVEIS)
    ===================================================================== */
 @media (max-width:860px){
-  .app{ grid-template-columns:1fr; grid-template-areas:"top" "ach" "main" "foot"; gap:18px; padding:12px 12px 24px; }
+  .app{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "top"
+      "main"
+      "ach"
+      "foot";
+    gap:16px;
+    padding:10px 12px 28px;
+  }
+  /* Topbar organizada em 2 linhas no mobile/tablet */
+  .topbar{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    grid-template-areas:
+      "avatar level actions"
+      "xp     xp    xp";
+    align-items:center;
+    gap:10px 12px;
+    padding-top:10px;
+  }
+  .avatar-btn{ grid-area:avatar; justify-self:start; }
+  .level-num{ grid-area:level; font-size:44px; justify-self:center; }
+  .topbar-actions{ grid-area:actions; justify-self:end; flex-direction:row; gap:6px; }
+  .xp-block{ grid-area:xp; width:100%; margin-top:8px; }
+  .xp-info{ flex-wrap:wrap; gap:6px; align-items:center; }
+
+  /* Conquistas em grade responsiva (sem espremer os 6 itens numa linha só) */
   .ach-wrap{ padding:8px 0 8px 8px; }
-  .ach-list{ flex-direction:row; min-height:auto; gap:10px; }
-  .ach-item{ flex:1; flex-direction:column; text-align:center; font-size:11px; gap:6px; }
-  .ach-panel .hud-inner{ padding:14px 10px; }
+  .ach-list{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    min-height:auto;
+    gap:10px;
+  }
+  .ach-item{
+    flex-direction:row;
+    text-align:left;
+    font-size:11px;
+    gap:8px;
+    padding:8px;
+    background:rgba(0,240,255,.05);
+    border:1px solid rgba(0,240,255,.18);
+  }
+  .ach-icon{ flex:0 0 26px; height:26px; font-size:14px; }
+  .ach-panel .hud-inner{ padding:14px 12px; }
   .panel-title{ margin-bottom:12px; }
-  .main-panel .hud-inner{ padding:34px 20px 30px; }
-  .main-panel{ --cut:polygon(26px 0, calc(100% - 40px) 0, 100% 40px, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%, 0 26px); min-height:340px; }
-  .deco-stripes{ right:50px; width:90px; }
-  .diary-grid{ grid-template-columns:1fr; }
-  .level-num{ font-size:46px; }
+
+  /* Painel central de Missões e Diário */
+  .main-wrap{ padding-top:32px; }
+  .main-tabs{ left:10px; right:10px; }
+  .tab-btn{
+    flex:1;
+    text-align:center;
+    padding:8px 12px;
+    font-size:12px;
+    letter-spacing:.1em;
+  }
+  .main-panel .hud-inner{ padding:28px 18px 24px; }
+  .main-panel{
+    --cut:polygon(20px 0, calc(100% - 28px) 0, 100% 28px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+    min-height:auto;
+  }
+  .deco-stripes{ right:32px; width:75px; height:8px; top:12px; }
+  .panel-head{ padding-right:0; margin-bottom:16px; }
+  .diary-grid{ grid-template-columns:1fr; gap:18px; }
   .circuit.left{ display:none; }
 }
+
+@media (max-width:600px){
+  /* Tela de Login / Cadastro ajustada para telas pequenas e teclado virtual */
+  .auth-screen{
+    align-items:flex-start;
+    padding:12px 10px 24px;
+  }
+  .auth-box{
+    margin:auto 0;
+    --cut:polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  }
+  .auth-inner{ padding:22px 16px 18px; }
+  .auth-inner .deco-stripes{ display:none; }
+  .auth-badge{ font-size:9px; letter-spacing:.14em; padding:3px 8px; }
+  .auth-title{ font-size:clamp(19px, 6vw, 23px); }
+  .auth-sub{ font-size:12px; }
+  .oauth-btn{ padding:10px 12px; font-size:11px; }
+
+  /* Modais ocupando melhor a área útil do celular */
+  .modal{ padding:10px; align-items:flex-end; }
+  .modal-box{ width:100%; max-height:92dvh; }
+  .modal-box .hud-border{
+    --cut:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  }
+  .modal-box .hud-inner{
+    padding:20px 14px 18px;
+    max-height:calc(92dvh - 6px);
+    -webkit-overflow-scrolling:touch;
+  }
+  .modal-title{ font-size:15px; }
+  .modal-sub{ font-size:12px; margin-bottom:14px; }
+
+  /* Formulários de configurações de conta empilhados no celular */
+  #usernameForm, #passwordForm{ flex-direction:column; }
+  #usernameForm .btn, #passwordForm .btn, #deleteAccountBtn{ width:100%; text-align:center; }
+  .provider-row{ flex-direction:column; align-items:flex-start; }
+  .provider-row .small-btn{ width:100%; text-align:center; }
+
+  /* Lista de administração de tarefas */
+  .task-admin li{ flex-wrap:wrap; gap:8px; }
+  .task-admin .t-name{ min-width:100%; }
+
+  /* Toasts centralizados na parte inferior do celular */
+  .toasts{ left:10px; right:10px; bottom:10px; align-items:stretch; }
+  .toast{ max-width:100%; text-align:center; }
+}
+
 @media (max-width:480px){
-  .topbar{ gap:12px; padding-top:20px; }
-  .xp-bar{ height:26px; }
-  .xp-info{ font-size:11px; flex-direction:column; gap:2px; }
+  .app{ padding:8px 8px 24px; gap:14px; }
+  .topbar{ gap:8px; padding-top:6px; }
+  .topbar-actions{ flex-direction:column; gap:4px; }
+  .hud-top-btn{ padding:5px 9px; font-size:9px; }
+  .level-num{ font-size:38px; min-width:48px; }
+  .xp-bar{ height:24px; }
+  .xp-tag{ font-size:10px; padding:1px 5px; }
+  .xp-info{ font-size:11px; }
+
+  /* Conquistas em 2 colunas em celulares compactos */
+  .ach-list{ grid-template-columns:repeat(2, 1fr); gap:8px; }
+  .ach-item{ font-size:10px; padding:7px 6px; }
+
+  /* Missões diárias */
+  .tab-btn{ font-size:10px; padding:8px 6px; letter-spacing:.06em; }
+  .main-panel .hud-inner{ padding:24px 12px 20px; }
+  .panel-head h2{ font-size:13px; letter-spacing:.12em; }
+  .panel-head .small-btn{ width:100%; text-align:center; }
+  .mission{ gap:10px; align-items:flex-start; }
+  .mission > div{ flex:1; min-width:0; }
+  .mission-name{ font-size:14px; }
+  .mission-meta{ gap:5px; font-size:11px; }
+  .plus-btn{ width:38px; height:38px; margin-top:2px; }
+
+  /* Diário e Modal */
   .diff-options{ grid-template-columns:repeat(2,1fr); }
   .entry{ flex-direction:column; }
-  .entry img{ width:100%; height:180px; }
-  .plus-btn{ width:36px; height:36px; }
+  .entry img{ width:100%; height:170px; }
+  .btn-row .btn{ flex:1 1 100%; text-align:center; }
+  .add-btn{ width:100%; padding:13px 16px; font-size:13px; text-align:center; }
 }
 @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
