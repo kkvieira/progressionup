@@ -521,12 +521,25 @@ const SEGMENT_LIBRARY = [
    7. GERAÇÃO PROCEDURAL DA FASE (6 a 8 segmentos + Arena do Boss)
    ===================================================================== */
 let game = null; // Instância ativa da partida
+let currentStageRng = Math.random;
+
+function setStageSeed(seed) {
+  if (typeof seed === 'number' && !Number.isNaN(seed) && window.SB?.multiplayer?.createSeededRandom) {
+    currentStageRng = window.SB.multiplayer.createSeededRandom(seed);
+  } else {
+    currentStageRng = Math.random;
+  }
+}
+
+function stageRand() {
+  return currentStageRng();
+}
 
 function pickWeighted(items, weightFn, excludeIds = []) {
   const pool = items.filter(it => !excludeIds.includes(it.id || it));
   const list = pool.length ? pool : items;
   const total = list.reduce((s, it) => s + weightFn(it), 0);
-  let r = Math.random() * total;
+  let r = stageRand() * total;
   for (const it of list) {
     r -= weightFn(it);
     if (r <= 0) return it;
@@ -534,10 +547,11 @@ function pickWeighted(items, weightFn, excludeIds = []) {
   return list[list.length - 1];
 }
 
-function generateStage(level) {
-  const numMainSegments = GAME_CONFIG.MIN_SEGMENTS + Math.floor(Math.random() * (GAME_CONFIG.MAX_SEGMENTS - GAME_CONFIG.MIN_SEGMENTS + 1)); // 6..8
-  const weather = WEATHERS[Math.floor(Math.random() * WEATHERS.length)];
-  const bossVariant = BOSS_VARIANTS[Math.floor(Math.random() * BOSS_VARIANTS.length)];
+function generateStage(level, seed = null) {
+  setStageSeed(seed);
+  const numMainSegments = GAME_CONFIG.MIN_SEGMENTS + Math.floor(stageRand() * (GAME_CONFIG.MAX_SEGMENTS - GAME_CONFIG.MIN_SEGMENTS + 1)); // 6..8
+  const weather = WEATHERS[Math.floor(stageRand() * WEATHERS.length)];
+  const bossVariant = BOSS_VARIANTS[Math.floor(stageRand() * BOSS_VARIANTS.length)];
 
   const rooftops = SEGMENT_LIBRARY.filter(s => s.type === 'rooftop');
   const offices  = SEGMENT_LIBRARY.filter(s => s.type === 'office');
@@ -563,7 +577,7 @@ function generateStage(level) {
     else pool = offices;
 
     const avail = pool.filter(s => s.id !== lastSegId);
-    const tpl = (avail.length ? avail : pool)[Math.floor(Math.random() * (avail.length || pool.length))];
+    const tpl = (avail.length ? avail : pool)[Math.floor(stageRand() * (avail.length || pool.length))];
     lastSegId = tpl.id;
 
     const segStart = cursorX;
@@ -673,7 +687,7 @@ function generateStage(level) {
     });
     if (i % 2 === 1) {
       const itemKinds = ['heal_chip', 'shield', 'ammo', 'overdrive'];
-      const rKind = itemKinds[(i + Math.floor(Math.random() * itemKinds.length)) % itemKinds.length];
+      const rKind = itemKinds[(i + Math.floor(stageRand() * itemKinds.length)) % itemKinds.length];
       items.push({
         id: uid(),
         kind: rKind,
@@ -830,7 +844,7 @@ function areAllDailyTasksCompleted() {
   return Array.isArray(state.tasks) && state.tasks.length > 0 && state.tasks.every(t => t.lastDone === todayKey());
 }
 
-async function startCityMission() {
+async function startCityMission(coopOptions = null) {
   if (!navigator.onLine) {
     toast('VOCÊ ESTÁ OFFLINE. A MISSÃO NA CIDADE REQUER CONEXÃO COM O SERVIDOR.', true);
     return;
@@ -841,14 +855,15 @@ async function startCityMission() {
     return;
   }
   state.game = state.game || DEFAULT_GAME_STATE();
-  const freePlay = areAllDailyTasksCompleted();
+  const isCoop = Boolean(coopOptions && coopOptions.roomId);
+  const freePlay = areAllDailyTasksCompleted() || isCoop;
   if (!freePlay && (state.game.tickets || 0) < GAME_CONFIG.TICKET_COST) {
     toast('SEM FICHAS DE ENTRADA! CONCLUA UMA TAREFA DIÁRIA PARA GANHAR FICHAS.', true);
     return;
   }
 
-  // Valida e desconta 1 ficha no servidor (RPC anti-cheat) se o usuário estiver autenticado
-  if (window.currentUser && window.SB?.jogo) {
+  // Valida e desconta 1 ficha no servidor (RPC anti-cheat) se for partida solo
+  if (!isCoop && window.currentUser && window.SB?.jogo) {
     try {
       if (typeof setSyncStatus === 'function') setSyncStatus('syncing', 'VALIDANDO FICHA...');
       const res = await window.SB.jogo.iniciarPartida();
@@ -865,13 +880,18 @@ async function startCityMission() {
     state.game.tickets -= GAME_CONFIG.TICKET_COST;
   }
 
+  // Atualiza status Presence para 'jogando'
+  if (window.currentUser && window.SB?.amigos) {
+    window.SB.amigos.atualizarStatusPresence(window.currentUser.id, 'jogando');
+  }
+
   state.game.matchesPlayed = (state.game.matchesPlayed || 0) + 1;
   saveState();
   renderCityBanner();
 
   buildPlayerSprites();
   const pStats = computePlayerStats();
-  const stage = generateStage(state.level);
+  const stage = generateStage(state.level, isCoop ? coopOptions.seed : null);
   const wpnColor = getWeaponColors({ level: state.level });
 
   game = {
@@ -879,6 +899,9 @@ async function startCityMission() {
     paused: false,
     over: false,
     won: false,
+    isCoop,
+    coopRoomId: isCoop ? coopOptions.roomId : null,
+    coopSeed: isCoop ? coopOptions.seed : null,
     time: 0,
     cameraX: (28 + 6) - GAME_CONFIG.WIDTH / 2,
     cameraY: (130 + 8) - GAME_CONFIG.HEIGHT / 2,
@@ -1211,9 +1234,15 @@ function updateGame(dt) {
   // 4. Ataques e Habilidade Especial da Classe
   if (keys.attackJustPressed && p.atkTimer <= 0) {
     performPlayerAttack();
+    if (game.isCoop && window.SB?.multiplayer) {
+      window.SB.multiplayer.transmitirAcaoJogador('attack', p);
+    }
   }
   if (keys.skillJustPressed && p.skillTimer <= 0) {
     performPlayerSkill();
+    if (game.isCoop && window.SB?.multiplayer) {
+      window.SB.multiplayer.transmitirAcaoJogador('skill', p);
+    }
   }
 
   // Animação de passos do agente
@@ -1256,6 +1285,15 @@ function updateGame(dt) {
   updateShockwaves(dt);
   updateItems(dt);
   updateParticlesAndTexts(dt);
+
+  // Sincronização em tempo real do Multiplayer Cooperativo (Broadcast 15-20 msgs/s + Interpolação)
+  if (game.isCoop && window.SB?.multiplayer) {
+    window.SB.multiplayer.transmitirEstadoJogador(p);
+    window.SB.multiplayer.interpolarJogadoresRemotos(dt);
+    if (window.SB.multiplayer.souHost()) {
+      window.SB.multiplayer.transmitirEstadoMundoHost(game);
+    }
+  }
 
   // 7. Câmera suave centralizada no personagem (X e Y)
   const targetCamX = (p.x + p.w / 2) - GAME_CONFIG.WIDTH / 2;
@@ -1977,9 +2015,17 @@ function executeBossAttack(b) {
   }
 }
 
-function damageBoss(amount) {
+function damageBoss(amount, fromNetwork = false) {
   const b = game.stage.boss;
   if (b.defeated) return;
+
+  // Se for cliente não-host em partida cooperativa, reporta o acerto ao Host (autoridade)
+  if (!fromNetwork && game.isCoop && window.SB?.multiplayer && !window.SB.multiplayer.souHost()) {
+    window.SB.multiplayer.transmitirAcertoClienteParaHost({
+      targetType: 'boss',
+      dmg: amount
+    });
+  }
 
   // Ponto fraco (núcleo/cabeça) só recebe dano total quando exposto!
   const actualDmg = b.exposed ? amount : Math.max(1, Math.round(amount * 0.15));
@@ -2035,7 +2081,17 @@ function updateShockwaves(dt) {
   }
 }
 
-function damageEnemy(en, amount, knockbackVx = 0) {
+function damageEnemy(en, amount, knockbackVx = 0, fromNetwork = false) {
+  if (!fromNetwork && game.isCoop && window.SB?.multiplayer && !window.SB.multiplayer.souHost()) {
+    const idx = game.stage.enemies.indexOf(en);
+    if (idx >= 0) {
+      window.SB.multiplayer.transmitirAcertoClienteParaHost({
+        targetType: 'enemy',
+        enemyIndex: idx,
+        dmg: amount
+      });
+    }
+  }
   en.hp -= amount;
   en.hitFlash = 0.14;
   en.vx = knockbackVx;
@@ -2216,20 +2272,32 @@ async function finishCityMission(victory) {
   let levelsGained = 0;
   let unlockedAch = [];
 
-  // Sincroniza resultado da partida via RPC segura no PostgreSQL (finalizar_partida)
+  // Sincroniza resultado da partida via RPC segura no PostgreSQL (finalizar_partida ou finalizar_partida_coop)
   if (window.currentUser && window.SB?.jogo) {
     try {
       if (typeof setSyncStatus === 'function') setSyncStatus('syncing', 'SALVANDO PARTIDA...');
-      const res = await window.SB.jogo.finalizarPartida({
-        distancia: game.distance,
-        inimigosDerrotados: game.enemiesKilled,
-        bossVencido: victory,
-        semDano: !game.tookDamage,
-        moedasColetadas: game.coinsEarned,
-        duracao: Math.max(1, Math.round(game.time)),
-        dropRaroKey,
-        dropRaroTipo
-      });
+      let res = null;
+      if (game.isCoop && window.SB?.multiplayer?.obterSalaAtiva()) {
+        res = await window.SB.multiplayer.finalizarPartidaCoop({
+          distancia: game.distance,
+          inimigos_derrotados: game.enemiesKilled,
+          boss_vencido: victory,
+          sem_dano: !game.tookDamage,
+          moedas_coletadas: game.coinsEarned,
+          duracao: Math.max(10, Math.round(game.time))
+        });
+      } else {
+        res = await window.SB.jogo.finalizarPartida({
+          distancia: game.distance,
+          inimigosDerrotados: game.enemiesKilled,
+          bossVencido: victory,
+          semDano: !game.tookDamage,
+          moedasColetadas: game.coinsEarned,
+          duracao: Math.max(1, Math.round(game.time)),
+          dropRaroKey,
+          dropRaroTipo
+        });
+      }
       if (res?.profile) {
         state.level = res.profile.level;
         state.xp = res.profile.xp_nivel_atual;
@@ -2333,7 +2401,15 @@ function togglePauseGame() {
 function closeCityMission(levelUpPrevLevel = null) {
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
-  if (game) game.running = false;
+  if (game) {
+    if (game.isCoop && window.SB?.multiplayer) {
+      window.SB.multiplayer.sairDaSala();
+    }
+    game.running = false;
+  }
+  if (window.currentUser && window.SB?.amigos) {
+    window.SB.amigos.atualizarStatusPresence(window.currentUser.id, 'online');
+  }
   $('#gameScreen').classList.remove('open');
   document.body.classList.remove('no-scroll');
   renderAll();
@@ -2655,6 +2731,51 @@ function renderGameCanvas() {
       ctx.strokeStyle = '#00F0FF';
       ctx.strokeRect(pxPos - 2, pyPos - 2, p.w + 4, p.h + 3);
     }
+  }
+
+  // ---- JOGADORES REMOTOS (SALA MULTIPLAYER COOPERATIVA COM INTERPOLAÇÃO) ----
+  if (game.isCoop && window.SB?.multiplayer) {
+    const remotes = window.SB.multiplayer.obterJogadoresRemotos();
+    Object.values(remotes).forEach(rp => {
+      const rx = Math.round(rp.x - camX);
+      const ry = Math.round(rp.y + (rp.crouching ? 3 : 0));
+      if (rx < -32 || rx > W + 32) return;
+
+      if (!rp.spriteIdle && typeof composeSprite === 'function') {
+        const baseG = composeSprite(rp.character, { level: rp.level || 1 });
+        rp.spriteIdle = makeSpriteCanvas(baseG);
+        rp.spriteRun1 = makeSpriteCanvas(shiftLegsGrid(baseG, 1));
+        rp.spriteRun2 = makeSpriteCanvas(shiftLegsGrid(baseG, 2));
+      }
+
+      const rSpr = rp.animFrame === 1 ? rp.spriteRun1 : rp.animFrame === 2 ? rp.spriteRun2 : rp.spriteIdle;
+      if (rSpr) {
+        ctx.save();
+        ctx.translate(rx + 6, ry + 8);
+        if (rp.facing < 0) ctx.scale(-1, 1);
+        if (rp.crouching) ctx.scale(1.08, 0.78);
+        ctx.drawImage(rSpr, -9, -10);
+        if (rp.atkVisualTimer > 0) {
+          ctx.fillStyle = '#00F0FF';
+          ctx.fillRect(5, -6, 12, 3);
+        }
+        ctx.restore();
+      }
+
+      // Etiqueta neon acima do aliado cooperativo
+      ctx.font = 'bold 6px monospace';
+      ctx.fillStyle = '#08101A';
+      ctx.fillText(rp.nome.slice(0, 10), rx - 2, ry - 6);
+      ctx.fillStyle = '#00F0FF';
+      ctx.fillText(rp.nome.slice(0, 10), rx - 3, ry - 7);
+
+      // Mini barra de HP do aliado
+      const hpRatio = Math.max(0, Math.min(1, (rp.hp || 100) / (rp.maxHp || 100)));
+      ctx.fillStyle = '#08101A';
+      ctx.fillRect(rx - 1, ry - 4, 14, 2);
+      ctx.fillStyle = '#7CFF3A';
+      ctx.fillRect(rx - 1, ry - 4, Math.round(14 * hpRatio), 2);
+    });
   }
 
   // ---- PROJÉTEIS DO JOGADOR & MALETAS INIMIGAS ----
@@ -3465,3 +3586,69 @@ function initGame() {
   bindTouchControls();
   renderCityBanner();
 }
+
+/**
+ * Handlers de sincronização do mundo para partidas cooperativas no canal `room:{room_id}`:
+ * - Clientes não-host aplicam o estado autoritativo de inimigos, maletas e Boss vindo do Host.
+ * - O Host processa acertos (`client_hit`) enviados pelos outros jogadores da sala.
+ */
+function applyCoopWorldStateFromHost(payload) {
+  if (!game || !game.isCoop || !payload) return;
+  const st = game.stage;
+
+  // 1. Atualiza inimigos
+  if (Array.isArray(payload.e)) {
+    payload.e.forEach(([idx, x, y, hp, facing]) => {
+      const en = st.enemies[idx];
+      if (!en) return;
+      en.x += (x - en.x) * 0.5;
+      en.y += (y - en.y) * 0.5;
+      en.hp = hp;
+      en.facing = facing;
+    });
+  }
+
+  // 2. Atualiza Boss
+  if (payload.b && st.boss) {
+    const b = st.boss;
+    const pb = payload.b;
+    if (pb.a && !b.active && !b.defeated) {
+      b.active = true;
+      $('#bossHud')?.classList.remove('hidden');
+      $('#bossName').textContent = b.name;
+    }
+    b.x = pb.x;
+    b.y = pb.y;
+    b.hp = pb.hp;
+    b.maxHp = pb.mhp || b.maxHp;
+    b.phase = pb.ph || b.phase;
+    b.state = pb.st || b.state;
+    b.exposed = Boolean(pb.ex);
+    if (pb.d && !b.defeated) {
+      b.defeated = true;
+      b.active = false;
+      $('#bossHud')?.classList.add('hidden');
+      finishCityMission(true);
+    }
+  }
+
+  if (payload.over && payload.won && !game.over) {
+    finishCityMission(true);
+  }
+}
+
+function handleCoopClientHitOnHost(payload) {
+  if (!game || !game.isCoop || !payload) return;
+  if (payload.targetType === 'boss') {
+    damageBoss(Number(payload.dmg || 10), true);
+  } else if (payload.targetType === 'enemy' && typeof payload.enemyIndex === 'number') {
+    const en = game.stage.enemies[payload.enemyIndex];
+    if (en && en.hp > 0) {
+      damageEnemy(en, Number(payload.dmg || 10), 0, true);
+    }
+  }
+}
+
+window.startCoopCityMission = startCityMission;
+window.applyCoopWorldStateFromHost = applyCoopWorldStateFromHost;
+window.handleCoopClientHitOnHost = handleCoopClientHitOnHost;

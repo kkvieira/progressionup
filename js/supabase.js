@@ -66,6 +66,48 @@ function translateSupabaseError(err) {
   if (m.includes('identity_already_exists') || m.includes('manual linking is disabled')) {
     return 'NÃO FOI POSSÍVEL VINCULAR A IDENTIDADE. VERIFIQUE SE O MANUAL LINKING ESTÁ ATIVO NO SUPABASE.';
   }
+  if (m.includes('rate_limit_mensagem')) {
+    return 'AGUARDE 2 SEGUNDOS ANTES DE ENVIAR OUTRA MENSAGEM.';
+  }
+  if (m.includes('usuario_bloqueado')) {
+    return 'AÇÃO BLOQUEADA: EXISTE UM BLOQUEIO ATIVO ENTRE OS AGENTES.';
+  }
+  if (m.includes('agente_nao_encontrado')) {
+    return 'NENHUM AGENTE ENCONTRADO COM ESTE CODINOME (@USERNAME).';
+  }
+  if (m.includes('ja_sao_amigos')) {
+    return 'VOCÊS JÁ SÃO ALIADOS NA REDE.';
+  }
+  if (m.includes('pedido_ja_pendente')) {
+    return 'JÁ EXISTE UM PEDIDO DE AMIZADE PENDENTE COM ESTE AGENTE.';
+  }
+  if (m.includes('apenas_destinatario_aceita')) {
+    return 'SOMENTE O DESTINATÁRIO PODE ACEITAR ESTE PEDIDO DE AMIZADE.';
+  }
+  if (m.includes('ja_possui_grupo') || m.includes('uq_group_members_single_clan')) {
+    return 'VOCÊ JÁ PERTENCE A UM ESQUADRÃO. SAIA DELE ANTES DE ENTRAR EM OUTRO.';
+  }
+  if (m.includes('grupo_lotado')) {
+    return 'ESTE ESQUADRÃO ATINGIU O LIMITE MÁXIMO DE 30 INTEGRANTES.';
+  }
+  if (m.includes('grupo_nao_encontrado')) {
+    return 'ESQUADRÃO NÃO ENCONTRADO COM O CÓDIGO OU ID INFORMADO.';
+  }
+  if (m.includes('sala_nao_encontrada')) {
+    return 'SALA COOPERATIVA NÃO ENCONTRADA. VERIFIQUE O CÓDIGO DE 6 DÍGITOS.';
+  }
+  if (m.includes('sala_lotada')) {
+    return 'ESTA SALA COOPERATIVA JÁ ESTÁ LOTADA.';
+  }
+  if (m.includes('apenas_host_inicia')) {
+    return 'SOMENTE O LÍDER (HOST) DA SALA PODE INICIAR A MISSÃO COOPERATIVA.';
+  }
+  if (m.includes('anti_cheat_tempo_minimo')) {
+    return 'PARTIDA REJEITADA PELO SERVIDOR: TEMPO MÍNIMO DE OPERAÇÃO NÃO ATINGIDO.';
+  }
+  if (m.includes('row-level security') || m.includes('new row violates row-level security') || m.includes('acesso_negado') || m.includes('permissao_negada')) {
+    return 'ACESSO NEGADO PELO PROTOCOLO RLS: VOCÊ NÃO TEM PERMISSÃO PARA ESTA AÇÃO.';
+  }
   return raw.toUpperCase();
 }
 
@@ -428,26 +470,29 @@ const perfilApi = {
     return data;
   },
 
-  /** Inscreve-se em atualizações em tempo real (Realtime) da tabela `profiles` */
+  /** Atualiza configurações de privacidade e bio na tabela `profiles` */
+  async atualizarPrivacidade(userId, { privacy, bio, molduraEquipada }) {
+    const sb = requireClient();
+    const payload = {};
+    if (privacy && ['publico', 'amigos', 'privado'].includes(privacy)) payload.privacy = privacy;
+    if (typeof bio === 'string') payload.bio = bio.trim().slice(0, 160);
+    if (molduraEquipada !== undefined) payload.moldura_equipada = molduraEquipada || null;
+
+    const { data, error } = await sb
+      .from('profiles')
+      .update(payload)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw new Error(translateSupabaseError(error));
+    return data;
+  },
+
+  /** Inscreve-se em atualizações da conta sem usar Postgres Changes em profiles (respeita publicação restrita) */
   assinarRealtimePerfil(userId, onProfileChange) {
-    if (!supabaseClient) return null;
-    if (realtimeChannel) {
-      supabaseClient.removeChannel(realtimeChannel);
-      realtimeChannel = null;
-    }
-    realtimeChannel = supabaseClient
-      .channel(`public:profiles:id=eq.${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
-        payload => {
-          if (payload?.new && typeof onProfileChange === 'function') {
-            onProfileChange(payload.new);
-          }
-        }
-      )
-      .subscribe();
-    return realtimeChannel;
+    // A publicação supabase_realtime é dedicada exclusivamente a messages, notifications e friendships.
+    return null;
   }
 };
 
@@ -665,14 +710,16 @@ const jogoApi = {
   }
 };
 
-/* Exporta na janela global para integração com character.js, game.js e script.js */
+/* Exporta na janela global para integração com character.js, game.js, services/* e script.js */
 window.SB = {
   init: initSupabaseClient,
+  requireClient,
   getConfig: getSupabaseConfig,
   translateError: translateSupabaseError,
   auth: authApi,
   perfil: perfilApi,
   tarefas: tarefasApi,
   registros: registrosApi,
-  jogo: jogoApi
+  jogo: jogoApi,
+  services: {}
 };

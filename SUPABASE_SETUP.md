@@ -1,128 +1,133 @@
-# Guia de Configuração do Supabase e Roteiro de Testes Manuais
+# Guia Completo do Supabase (Social, Chat, Esquadrões, Rankings & Multiplayer Co-op)
 
-Este guia detalha o passo a passo para configurar o projeto no painel do **Supabase** (PostgreSQL, Auth OAuth 2.0 com PKCE, Storage privado e Realtime) e o roteiro de testes manuais para validar todas as regras de negócio e segurança.
-
----
-
-## Parte 1 — Passo a Passo no Painel do Supabase
-
-### 1. Criar o Projeto e Executar o Script SQL (`migrations`)
-1. Acesse [https://supabase.com/dashboard](https://supabase.com/dashboard) e clique em **New Project**.
-2. Defina o nome (`sistema-de-missoes`), uma senha forte para o banco PostgreSQL e a região (ex.: *South America - São Paulo*).
-3. Com o projeto criado, abra o menu lateral **SQL Editor** → **New query**.
-4. Copie todo o conteúdo do arquivo [`supabase/migrations/001_initial_schema.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/001_initial_schema.sql) e clique em **Run**.
-   - Isso criará automaticamente:
-     - Todas as tabelas (`profiles`, `characters`, `tasks`, `task_logs`, `achievements`, `user_achievements`, `game_runs`, `inventory`).
-     - Triggers (`on_auth_user_created`, `trg_enforce_max_active_tasks`, `trg_protect_profile_progression`, `updated_at`).
-     - Funções RPC anti-cheat (`concluir_tarefa`, `iniciar_partida`, `finalizar_partida`, `comprar_ou_equipar_item`, `importar_dados_locais`, `excluir_minha_conta`, `registrar_acesso_diario`).
-     - Policies de **Row Level Security (RLS)** em todas as tabelas.
-     - O bucket privado `registros` no **Supabase Storage** com limite de **5 MB** e tipos `image/png`, `image/jpeg`, `image/webp`.
+Este documento reúne os comandos da **Supabase CLI**, o passo a passo no **Painel do Supabase** (PostgreSQL, Auth, Realtime Authorization, Storage, Edge Functions e `pg_cron`) e o roteiro de testes manuais e automatizados de RLS.
 
 ---
 
-### 2. Configurar URLs de Redirecionamento e Vinculação de Identidades (Auth)
-1. No menu lateral do Supabase, acesse **Authentication** → **URL Configuration**.
-2. Em **Site URL**, coloque a URL onde seu front-end roda (ex.: `http://localhost:5500` ou `http://127.0.0.1:5500` no Live Server, ou seu domínio em produção).
-3. Em **Redirect URLs**, adicione:
-   - `http://localhost:5500/**`
-   - `http://127.0.0.1:5500/**`
-   - `http://localhost:3000/**`
-4. Em **Authentication** → **Providers** → **Email**:
-   - Mantenha **Enable Email provider** ativado.
-   - Ative **Confirm email** (para exigir confirmação por e-mail) e defina **Minimum password length** para `8`.
-5. Em **Authentication** → **Settings** (ou **User Signups**):
-   - Certifique-se de que **Allow manual linking** esteja **ativado** (permite vincular/desvincular contas Google/Discord/GitHub na tela de Configurações da Conta) e que a união automática por e-mail verificado esteja habilitada.
+## 1. Estrutura da Pasta `supabase/`
+
+- [`supabase/migrations/001_initial_schema.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/001_initial_schema.sql) — Tabelas base (`profiles`, `characters`, `tasks`, `task_logs`, `achievements`, `user_achievements`, `game_runs`, `inventory`) e bucket privado `registros`.
+- [`supabase/migrations/002_social_multiplayer_schema.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/002_social_multiplayer_schema.sql) — Tabelas sociais e multiplayer (`friendships`, `blocks`, `user_roles`, `conversations`, `conversation_members`, `messages`, `message_reads`, `groups`, `group_members`, `group_invites`, `group_goals`, `seasons`, `season_results`, `game_rooms`, `game_room_players`, `reports`, `notifications`), view segura `public_profiles` e as 6 views de ranking (`v_rank_xp`, `v_rank_streak`, `v_rank_missions_week`, `v_rank_distance`, `v_rank_bosses`, `v_rank_groups`).
+- [`supabase/migrations/003_social_rls_policies.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/003_social_rls_policies.sql) — Funções auxiliares `SECURITY DEFINER` com `search_path = public` (`is_member`, `has_group_role`, `is_blocked_between`, `are_friends`, `is_moderator`, `is_room_member`) e todas as policies explícitas de **Row Level Security (RLS)**.
+- [`supabase/migrations/004_social_rpcs_and_triggers.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/004_social_rpcs_and_triggers.sql) — Todas as funções RPC `SECURITY DEFINER` (`enviar_pedido_amizade`, `responder_pedido`, `bloquear`, `enviar_mensagem`, `abrir_ou_criar_dm`, `criar_grupo`, `entrar_grupo`, `promover`, `expulsar`, `sair_grupo`, `contribuir_meta_grupo`, `criar_sala`, `entrar_sala`, `iniciar_sala`, `finalizar_partida_coop`, `obter_ranking`, `minha_posicao`) e triggers automáticos em `task_logs` e `game_runs`.
+- [`supabase/migrations/005_realtime_storage_cron.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/005_realtime_storage_cron.sql) — Publicação `supabase_realtime` estrita (`messages`, `notifications`, `friendships`), Realtime Authorization (`realtime.messages`), buckets `emblemas` (público) e `anexos-chat` (privado até 2 MB), e agendamentos `pg_cron`.
+- [`supabase/functions/moderar-mensagem/index.ts`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/functions/moderar-mensagem/index.ts) — Edge Function (Deno/TypeScript) acionada por Database Webhook em `messages` para filtrar palavrões e links suspeitos e marcar `flagged_for_review = true`.
+- [`supabase/functions/notificar/index.ts`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/functions/notificar/index.ts) — Edge Function (Deno/TypeScript) para criar notificações e mensagens de sistema no chat do esquadrão.
+- [`supabase/seed.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/seed.sql) — Dados de teste (4 agentes, amizades, `ESQUADRÃO ÔMEGA`, metas semanais, partidas e chat).
+- [`supabase/tests/rls.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/tests/rls.sql) — Script de testes automatizados simulando múltiplos usuários autenticados via `SET LOCAL request.jwt.claims`.
 
 ---
 
-### 3. Ativar Provedores OAuth 2.0 / OpenID Connect (Google, Discord e GitHub)
-Em todos os provedores abaixo, você usará a **Callback URL** do seu projeto Supabase (`pbqgfsgouqvubofphevk`), encontrada em **Authentication** → **Providers**:
-`https://pbqgfsgouqvubofphevk.supabase.co/auth/v1/callback`
+## 2. Comandos da Supabase CLI
 
-#### A. Google (OAuth 2.0 + OIDC)
-1. Acesse o [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**.
-2. Clique em **Create Credentials** → **OAuth client ID** (tipo *Web application*).
-3. Em **Authorized redirect URIs**, adicione:
-   `https://pbqgfsgouqvubofphevk.supabase.co/auth/v1/callback`
-4. Copie o **Client ID** e o **Client Secret** e cole em **Authentication** → **Providers** → **Google** no painel do Supabase. Salve.
+No terminal, na raiz do projeto:
 
-#### B. Discord (OAuth 2.0)
-1. Acesse o [Discord Developer Portal](https://discord.com/developers/applications) e clique em **New Application**.
-2. No menu **OAuth2**, adicione em **Redirects**:
-   `https://pbqgfsgouqvubofphevk.supabase.co/auth/v1/callback`
-3. Copie o **Client ID** e o **Client Secret** e cole em **Authentication** → **Providers** → **Discord** no Supabase. Salve.
+```bash
+# 1. Autenticar na Supabase CLI e vincular ao seu projeto remoto
+supabase login
+supabase link --project-ref SEU_PROJECT_REF
 
-#### C. GitHub (OAuth 2.0)
-1. Acesse o GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**.
-2. Em **Authorization callback URL**, preencha:
-   `https://pbqgfsgouqvubofphevk.supabase.co/auth/v1/callback`
-3. Copie o **Client ID** e gere um **Client Secret**, colando ambos em **Authentication** → **Providers** → **GitHub** no Supabase. Salve.
+# 2. Aplicar todas as migrations numeradas (001 a 005) no banco PostgreSQL
+supabase db push
 
----
+# 3. (Opcional) Popular dados de teste do arquivo supabase/seed.sql
+psql "$SUPABASE_DB_URL" -f supabase/seed.sql
 
-### 4. Verificar o Bucket Privado `registros` no Storage
-1. No menu lateral **Storage**, verifique se o bucket **`registros`** aparece com a tag **Private** (criado pelo script SQL).
-2. Caso queira revisar na interface gráfica:
-   - Limite de arquivo: `5 MB`.
-   - MIME types permitidos: `image/png, image/jpeg, image/webp`.
-   - Estrutura de pastas usada automaticamente pelo app: `/{user_id}/{YYYY-MM-DD}/{timestamp_hash.ext}`.
+# 4. Configurar Secrets das Edge Functions (NUNCA exponha service_role no front-end!)
+supabase secrets set MODERATION_WEBHOOK_SECRET="um-segredo-forte-aqui"
+
+# 5. Fazer deploy das Edge Functions (Deno/TypeScript)
+supabase functions deploy moderar-mensagem --no-verify-jwt
+supabase functions deploy notificar
+
+# 6. Executar a suíte de testes de Row Level Security (RLS)
+psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
+```
 
 ---
 
-### 5. Configurar as Variáveis de Ambiente no Front-End
-1. No painel do Supabase, acesse **Project Settings** → **API**.
-2. Copie a **Project URL** e a chave pública **`anon` `public`** (**NUNCA** copie nem exponha a chave `service_role` no front-end!).
-3. Configure no projeto de uma das seguintes formas:
-   - **Opção A (Arquivo [`js/env.js`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/js/env.js))**: substitua `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
-   - **Opção B (Arquivo `.env`)**: copie [`.env.example`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/.env.example) para `.env`.
-   - **Opção C (Direto na tela de Login HUD)**: clique em **⚙ CONFIGURAR CHAVES SUPABASE (.ENV)** na parte inferior da tela de login e cole a URL e a Anon Key.
+## 3. Passo a Passo no Painel do Supabase (Dashboard)
+
+### A. Habilitar a extensão `pg_cron`
+1. No menu lateral do painel Supabase, acesse **Database** → **Extensions**.
+2. Busque por **`pg_cron`** e ative a chave (schema `extensions` ou `pg_catalog`).
+3. A migration [`005_realtime_storage_cron.sql`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/migrations/005_realtime_storage_cron.sql) agenda automaticamente os 3 jobs:
+   - `cleanup-abandoned-coop-rooms` (`*/30 * * * *`): encerra salas `waiting`/`playing` com mais de 2 horas.
+   - `weekly-season-and-group-goals-reset` (`0 0 * * 1`): fecha a temporada semanal, grava `season_results`, premia o Top 3 com moedas (`+500`/`+300`/`+150`) e moldura exclusiva (`moldura_semanal_ouro`), e reinicia as metas semanais dos esquadrões.
+   - `monthly-season-reset` (`5 0 1 * *`): fecha a temporada mensal e premia o Top 3 com moedas e `moldura_mensal_campeao`.
+
+### B. Ativar Realtime e Realtime Authorization
+1. Acesse **Database** → **Publications** → **`supabase_realtime`**:
+   - Confirme que **somente** as tabelas `messages`, `notifications` e `friendships` estão marcadas (a migration `005` já configura isso automaticamente).
+2. Acesse **Project Settings** → **API** (ou **Realtime Settings**):
+   - Habilite **Enable Realtime Authorization** (permite canais privados `private: true` validados pelas policies criadas na tabela `realtime.messages` para `presence:global`, `chat:{conversation_id}` e `room:{room_id}`).
+
+### C. Configurar o Database Webhook para `moderar-mensagem`
+1. Acesse **Database** → **Webhooks** → **Create a new hook**.
+2. Configure:
+   - **Name**: `webhook_moderar_mensagem`
+   - **Table**: `public.messages`
+   - **Events**: marque **Insert**
+   - **Type**: `Supabase Edge Functions`
+   - **Edge Function**: selecione `moderar-mensagem` (`POST`)
+   - **HTTP Headers**: adicione `x-webhook-secret: um-segredo-forte-aqui` (mesmo valor definido no `supabase secrets set`).
+
+### D. Ajustar URLs e Provedores de Autenticação (E-mail, Apple, Google, GitHub, Discord)
+1. Acesse **Authentication** → **URL Configuration**:
+   - **Site URL**: `http://localhost:5500` (ou seu domínio de produção).
+   - **Redirect URLs**: adicione `http://localhost:5500/**`, `http://127.0.0.1:5500/**` e sua URL de produção.
+2. Em **Authentication** → **Providers**, mantenha habilitados **Email**, **Google**, **Apple**, **GitHub** e **Discord** usando a Callback URL do seu projeto (`https://<PROJECT_REF>.supabase.co/auth/v1/callback`).
 
 ---
 
-## Parte 2 — Roteiro de Testes Manuais
+## 4. Lista de Testes Manuais (Passo a Passo)
 
-### Teste 1: Cadastro, Senha Forte, Login e Proteção de Rotas
-1. Abra o sistema não autenticado: verifique que **apenas a tela de Login HUD** é exibida (`#mainApp` permanece oculto).
-2. Alterne para a aba **CRIAR CONTA** e digite uma senha com menos de 8 caracteres (ex.: `123456`):
-   - **Resultado esperado**: o indicador exibe `⚠ SENHA FRACA` e bloqueia o envio com mensagem clara em português.
-3. Cadastre-se com e-mail válido e senha de 8+ caracteres:
-   - **Resultado esperado**: o sistema exibe aviso para confirmar o e-mail (ou autentica e abre imediatamente a **Criação de Personagem**, pois a conta ainda não possui registro em `characters`).
-4. Tente entrar com senha errada:
-   - **Resultado esperado**: exibe `CREDENCIAIS INVÁLIDAS: E-MAIL OU SENHA INCORRETOS.`
+### Teste 1: Dois Usuários (Amizade, Presence Online/Jogando e Chat DM em Tempo Real)
+1. Abra uma janela normal (Usuário A: `@vance_cyber`) e uma janela anônima (Usuário B: `@nyx_shadow`).
+2. Na aba **REDE & CO-OP** → **👥 AMIGOS**, envie um pedido de amizade de A para B digitando `nyx_shadow`.
+3. Na tela de B, verifique que a solicitação chega em tempo real. Clique em **✓ ACEITAR**.
+4. Verifique que o indicador **Presence** fica verde (`● ONLINE AGORA`) para ambos. Quando um deles entra na Cidade, muda para ciano (`🎮 EM MISSÃO NA CIDADE`).
+5. Clique em **💬 DM** ao lado do amigo:
+   - Comece a digitar na janela de A sem enviar: verifique que aparece `⌨ @vance_cyber está digitando...` na janela de B (via Broadcast, sem gravar no banco).
+   - Envie uma mensagem e tente enviar outra em menos de 2 segundos: verifique a mensagem de rate limit (`AGUARDE 2 SEGUNDOS ENTRE CADA MENSAGEM (RATE LIMIT).`).
 
-### Teste 2: Migração do `localStorage` no Primeiro Login
-1. Antes de criar o personagem de uma conta nova, se houver dados salvos na chave `sistemaMissoes.v1` do `localStorage`, o modal **DADOS LOCAIS DETECTADOS!** será aberto automaticamente.
-2. Clique em **⬆ IMPORTAR PARA MINHA CONTA**:
-   - **Resultado esperado**: a RPC `importar_dados_locais` transfere nível, XP, personagem, missões e itens da loja para o banco e limpa a chave antiga do `localStorage`.
+### Teste 2: Bloqueio Bidirecional
+1. Na aba **👥 AMIGOS**, clique no botão **🚫 (Bloquear)** ao lado do Usuário B.
+2. Verifique que a amizade é desfeita imediatamente.
+3. Tente enviar mensagem na DM antiga ou enviar novo pedido de amizade de B para A (ou de A para B):
+   - **Resultado esperado**: bloqueado pelas policies de RLS e pela RPC com a mensagem `AÇÃO IMPEDIDA: EXISTE UM BLOQUEIO ENTRE OS USUÁRIOS.`
 
-### Teste 3: Limite de 15 Tarefas Ativas (Front-End + Trigger no Banco)
-1. No painel principal, clique em **⚙ EDITAR MISSÕES** e adicione novas missões até atingir `15/15`.
-2. Verifique que o botão **ADICIONAR MAIS ATIVIDADES** é desabilitado no HUD.
-3. Para testar a proteção no banco (mesmo burlando o HTML pelo console), abra o DevTools (`F12`) e execute:
-   ```javascript
-   await window.SB.tarefas.criar(window.currentUser.id, { name: 'Missão 16', difficulty: 'facil', category: 'rotina' });
-   ```
-   - **Resultado esperado**: o PostgreSQL rejeita a inserção no trigger `trg_enforce_max_active_tasks` e retorna `LIMITE DE 15 MISSÕES ATIVAS ATINGIDO!`.
-
-### Teste 4: Uma Conclusão por Dia + Exigência de Texto ou Foto + Storage Privado
-1. Clique no botão `+` de uma missão diária:
-   - Verifique que o botão **CONCLUIR MISSÃO** fica desabilitado enquanto texto e foto estiverem vazios.
-2. Tente anexar um arquivo `.gif`, `.pdf` ou maior que 5 MB:
-   - **Resultado esperado**: bloqueado imediatamente com mensagem de erro em português.
-3. Anexe uma foto `.png`/`.jpg`/`.webp` válida (até 5 MB) ou digite uma descrição e conclua:
-   - **Resultado esperado**: a foto é enviada para `registros/{user_id}/{data}/{arquivo}`, a RPC `concluir_tarefa` calcula o XP e fichas no servidor, a barra de XP do topo sobe em tempo real e a foto aparece no **Diário de Missões** via URL assinada temporária (`createSignedUrls`).
-4. Tente concluir a mesma tarefa novamente no mesmo dia via console:
-   ```javascript
-   await window.SB.registros.concluirTarefa('<TASK_ID_JA_CONCLUIDA>', 'Tentativa duplicada', null);
-   ```
-   - **Resultado esperado**: bloqueado pela constraint única `(task_id, data)` e pela RPC com a mensagem `ESTA MISSÃO JÁ FOI CONCLUÍDA HOJE (LIMITE DE 1 POR DIA).`
-
-### Teste 5: Segurança RLS e Proteção Anti-Cheat contra Manipulação pelo Console
-1. Abra o console do navegador (`F12`) e tente alterar diretamente seu nível, XP ou moedas na tabela `profiles`:
+### Teste 3: Row Level Security (RLS) e Privacidade de Perfis (`public_profiles`)
+1. Nas **⚙ CONTA**, altere a **Privacidade do Perfil Público** de `@nyx_shadow` para `PRIVADO` (ou `APENAS AMIGOS`).
+2. No console do navegador (`F12`) de outro usuário que não seja amigo, execute:
    ```javascript
    const sb = window.SB.init();
-   await sb.from('profiles').update({ level: 99, xp_total: 999999, moedas: 50000 }).eq('id', window.currentUser.id);
+   // 1. Tentar ler a tabela bruta profiles de terceiros (bloqueado por RLS)
+   const { data: rawProfiles } = await sb.from('profiles').select('*');
+   console.log('Profiles brutos visíveis (apenas o próprio):', rawProfiles);
+
+   // 2. Consultar public_profiles (respeita privacidade e nunca expõe e-mail nem diário)
+   const { data: pubProfiles } = await sb.from('public_profiles').select('*');
+   console.log('Public profiles:', pubProfiles);
    ```
-   - **Resultado esperado**: o trigger `trg_protect_profile_progression` ignora a alteração direta vinda do cliente e mantém `level`, `xp_total`, `moedas` e `fichas` intactos no banco.
-2. Tente ler dados de outro `user_id` em `profiles`, `tasks`, `task_logs` ou `storage.objects`:
-   - **Resultado esperado**: as policies de **Row Level Security (`auth.uid() = user_id`)** retornam lista vazia (`[]`).
+3. Para validar todas as regras no banco de uma só vez, execute `psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql` e verifique `ALL RLS TESTS PASSED SUCCESSFULLY`.
+
+### Teste 4: Esquadrão (Grupo), Cargos, Transferência de Liderança e Metas Semanais
+1. Na sub-aba **🛡️ ESQUADRÃO**, crie um esquadrão (ex.: `ESQUADRÃO NEON`, tipo `ABERTO`).
+2. Com o Usuário B, entre no esquadrão clicando em **ENTRAR** ou informando o código de convite.
+3. Conclua uma missão diária na aba **MISSÕES**:
+   - Volte para **🛡️ ESQUADRÃO** e veja que a barra **METAS SEMANAIS COLETIVAS** avançou automaticamente via trigger `trg_task_logs_group_goal`.
+4. Com o líder (Usuário A), clique em **🚪 SAIR**:
+   - Verifique que a liderança é transferida automaticamente para o Usuário B (oficial/membro mais antigo).
+
+### Teste 5: Ranking Semanal, Mensal e Geral
+1. Abra a aba **RANKINGS**.
+2. Alterne entre os períodos **SEMANAL**, **MENSAL** e **GERAL**, e entre as 6 categorias (**⚡ XP TOTAL**, **🎯 MISSÕES (SEMANA)**, **🔥 SEQUÊNCIA**, **🏙️ DISTÂNCIA**, **🤖 BOSSES**, **🛡️ ESQUADRÕES**).
+3. Verifique o destaque da sua posição (`SUA POSIÇÃO ATUAL: #...`) e as medalhas de Top 1, 2 e 3.
+
+### Teste 6: Sala Cooperativa com 2 Jogadores (Seed Determinística + Broadcast 15–20 Hz)
+1. Na aba **REDE & CO-OP** → **🎮 SALA CO-OP**, clique em **⚡ CRIAR SALA CO-OP** com o Usuário A (Host).
+2. Copie o código de 6 caracteres exibido no Lobby e digite-o na tela do Usuário B clicando em **ENTRAR NA SALA**.
+3. No Host (Usuário A), clique em **▶ INICIAR MISSÃO CO-OP**:
+   - Ambos os jogadores entram automaticamente na Cidade gerada com a **mesma `seed`**.
+   - Movimente ambos os personagens (`A`/`D`, `W`, `Espaço` ou `J`): observe a interpolação suave em tempo real (Broadcast a 15–20 msgs/s com `self: false`), a sincronização de inimigos/boss pelo Host e a validação anti-trapaça na RPC `finalizar_partida_coop` ao concluir a fase.

@@ -55,6 +55,8 @@ const DEFAULT_GAME_STATE = () => ({
 const DEFAULT_STATE = () => ({
   version: 1,
   username: '',
+  privacy: 'public',
+  moldura_equipada: null,
   level: 1,
   xp: 0,
   totalXP: 0,
@@ -827,6 +829,8 @@ async function loadAuthenticatedApp(user) {
     state = {
       version: 1,
       username: prof?.username || user.email?.split('@')[0] || 'agente',
+      privacy: prof?.privacy || 'public',
+      moldura_equipada: prof?.moldura_equipada || null,
       level: prof?.level || 1,
       xp: prof?.xp_nivel_atual || 0,
       totalXP: prof?.xp_total || 0,
@@ -877,22 +881,8 @@ async function loadAuthenticatedApp(user) {
     renderAll();
     setSyncStatus('online');
 
-    // 5. Assina atualizações Realtime na tabela `profiles` (barra de XP e nível em tempo real)
-    window.SB.perfil.assinarRealtimePerfil(user.id, updatedProf => {
-      const prevLvl = state.level;
-      state.level = updatedProf.level;
-      state.xp = updatedProf.xp_nivel_atual;
-      state.totalXP = updatedProf.xp_total;
-      state.username = updatedProf.username || state.username;
-      state.streak.count = updatedProf.streak_atual;
-      state.streak.best = updatedProf.maior_streak;
-      state.streak.lastDate = updatedProf.ultima_data_streak;
-      state.game.coins = updatedProf.moedas;
-      state.game.tickets = updatedProf.fichas;
-      state.game.dailyXP = updatedProf.xp_jogo_hoje || 0;
-      renderBar(updatedProf.level > prevLvl);
-      if (typeof renderCityBanner === 'function') renderCityBanner();
-    });
+    // 5. Inicializa canais Realtime sociais (Presence global + Postgres Changes em friendships/notifications)
+    await initSocialRealtime(user.id);
 
     // 6. Se houver dados locais no navegador e a conta for recém-criada (sem personagem no banco), oferece migração
     if (legacy && !state.profile) {
@@ -958,6 +948,7 @@ async function openAccountSettings() {
   if (!window.currentUser) return;
   $('#accountEmailDisplay').textContent = `E-MAIL DA CONTA: ${window.currentUser.email || 'PROVEDOR EXTERNO'} • ID: ${window.currentUser.id.slice(0, 8)}`;
   $('#settingsUsername').value = state.username || '';
+  if ($('#settingsPrivacy')) $('#settingsPrivacy').value = state.privacy || 'public';
   $('#settingsNewPassword').value = '';
   openModal('accountModal');
   await renderConnectedProviders();
@@ -1154,6 +1145,7 @@ function bindEvents() {
   $('#logoutBtn')?.addEventListener('click', async () => {
     if (!confirm('Deseja encerrar sua sessão atual?')) return;
     try {
+      await cleanupAllSocialSubscriptions();
       await window.SB.auth.signOut();
       window.currentUser = null;
       state = DEFAULT_STATE();
@@ -1169,12 +1161,15 @@ function bindEvents() {
     e.preventDefault();
     if (!window.currentUser) return;
     const newName = $('#settingsUsername').value.trim();
+    const newPrivacy = $('#settingsPrivacy') ? $('#settingsPrivacy').value : 'public';
     const btn = $('#saveUsernameBtn');
     btn.disabled = true;
     try {
       const updated = await window.SB.perfil.atualizarUsername(window.currentUser.id, newName);
+      await window.SB.perfil.atualizarPrivacidade(window.currentUser.id, newPrivacy);
       state.username = updated.username;
-      toast(`CODINOME ATUALIZADO PARA @${updated.username.toUpperCase()}!`);
+      state.privacy = newPrivacy;
+      toast(`PERFIL ATUALIZADO: @${updated.username.toUpperCase()} (${newPrivacy.toUpperCase()})!`);
     } catch (err) {
       toast(err.message, true);
     } finally {
@@ -1204,6 +1199,7 @@ function bindEvents() {
     );
     if (confirmText !== 'EXCLUIR') return;
     try {
+      await cleanupAllSocialSubscriptions();
       await window.SB.perfil.excluirMinhaConta();
       window.currentUser = null;
       state = DEFAULT_STATE();
@@ -1249,13 +1245,25 @@ function bindEvents() {
   });
   $('#levelUp').addEventListener('click', () => $('#levelUp').classList.remove('active'));
 
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', async () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-    const diary = btn.dataset.tab === 'diary';
-    $('#tabMissions').classList.toggle('hidden', diary);
-    $('#tabDiary').classList.toggle('hidden', !diary);
-    if (diary) renderDiary();
+    const tab = btn.dataset.tab;
+    $('#tabMissions').classList.toggle('hidden', tab !== 'missions');
+    $('#tabDiary').classList.toggle('hidden', tab !== 'diary');
+    $('#tabSocial')?.classList.toggle('hidden', tab !== 'social');
+    $('#tabRanking')?.classList.toggle('hidden', tab !== 'ranking');
+
+    // Se saiu da aba social, cancela assinatura Realtime da conversa ativa (supabase.removeChannel)
+    if (tab !== 'social' && window.SB?.services?.chat) {
+      await window.SB.services.chat.desconectarConversaAtiva();
+    }
+
+    if (tab === 'diary') renderDiary();
+    if (tab === 'social') switchSocialSubSection(activeSocialSec);
+    if (tab === 'ranking') renderRankingTab();
   }));
+
+  bindSocialAndRankingEvents();
 
   $('#calPrev').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); });
   $('#calNext').addEventListener('click', () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); });
@@ -1273,6 +1281,961 @@ function bindEvents() {
 
   setInterval(checkDayChange, 20000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDayChange(); });
+}
+
+/* =====================================================================
+   16.5 CAMADA SOCIAL, CHAT REALTIME, ESQUADRÕES, CO-OP & RANKINGS
+   ===================================================================== */
+let activeSocialSec = 'friends';
+let activeConversationId = '00000000-0000-0000-0000-000000000001'; // Canal Global padrão
+let activeConversationTitle = '🌐 REDE GLOBAL DE AGENTES';
+let loadedChatMessages = [];
+let pendingChatAttachmentFile = null;
+let typingUsersMap = {}; // { username: timeoutId }
+let activeRankCat = 'xp';
+let activeRankPeriod = 'weekly';
+
+/** Cancela todas as assinaturas Realtime ao sair da conta ou fechar canais (supabase.removeChannel) */
+async function cleanupAllSocialSubscriptions() {
+  try {
+    if (window.SB?.services?.chat) await window.SB.services.chat.desconectarConversaAtiva();
+    if (window.SB?.services?.amigos) await window.SB.services.amigos.desconectarTudo();
+    if (window.SB?.services?.multiplayer) await window.SB.services.multiplayer.sairDaSala();
+  } catch {}
+}
+
+/** Inicializa Presence Global e Postgres Changes em friendships e notifications */
+async function initSocialRealtime(userId) {
+  if (!window.SB?.services?.amigos) return;
+  try {
+    await window.SB.services.amigos.conectarPresenceGlobal('online', () => {
+      if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'friends') {
+        renderFriendsSection();
+      }
+    });
+
+    window.SB.services.amigos.assinarEventosSociais(
+      userId,
+      () => {
+        if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'friends') {
+          renderFriendsSection();
+        }
+        refreshUnreadBadges();
+      },
+      newNotif => {
+        if (newNotif?.title) toast(`🔔 ${newNotif.title}`);
+        refreshUnreadBadges();
+        if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'notifs') {
+          renderNotificationsSection();
+        }
+      }
+    );
+
+    await refreshUnreadBadges();
+  } catch {}
+}
+
+async function refreshUnreadBadges() {
+  if (!window.currentUser || !window.SB?.services?.amigos) return;
+  try {
+    const [notifs, convs] = await Promise.all([
+      window.SB.services.amigos.listarNotificacoes(30),
+      window.SB.services.chat.listarConversas()
+    ]);
+    const unreadNotifs = (notifs || []).filter(n => !n.read_at).length;
+    const unreadChat = (convs || []).reduce((acc, c) => acc + (c.unread_count || 0), 0);
+    const total = unreadNotifs + unreadChat;
+
+    const mainBadge = $('#socialUnreadBadge');
+    if (mainBadge) {
+      mainBadge.textContent = total;
+      mainBadge.classList.toggle('hidden', total <= 0);
+    }
+    const chatBadge = $('#chatSubUnread');
+    if (chatBadge) {
+      chatBadge.textContent = unreadChat;
+      chatBadge.classList.toggle('hidden', unreadChat <= 0);
+    }
+    const notifBadge = $('#notifSubUnread');
+    if (notifBadge) {
+      notifBadge.textContent = unreadNotifs;
+      notifBadge.classList.toggle('hidden', unreadNotifs <= 0);
+    }
+  } catch {}
+}
+
+async function switchSocialSubSection(sec) {
+  const prevSec = activeSocialSec;
+  activeSocialSec = sec;
+
+  document.querySelectorAll('[data-social-sec]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.socialSec === sec);
+  });
+
+  $('#socialSecFriends')?.classList.toggle('hidden', sec !== 'friends');
+  $('#socialSecChat')?.classList.toggle('hidden', sec !== 'chat');
+  $('#socialSecGroups')?.classList.toggle('hidden', sec !== 'groups');
+  $('#socialSecCoop')?.classList.toggle('hidden', sec !== 'coop');
+  $('#socialSecNotifs')?.classList.toggle('hidden', sec !== 'notifs');
+
+  // Se saiu da aba de chat, remove o canal Realtime da conversa ativa
+  if (prevSec === 'chat' && sec !== 'chat' && window.SB?.services?.chat) {
+    await window.SB.services.chat.desconectarConversaAtiva();
+  }
+
+  if (sec === 'friends') await renderFriendsSection();
+  if (sec === 'chat') await renderChatSection();
+  if (sec === 'groups') await renderGroupsSection();
+  if (sec === 'coop') renderCoopLobbyUI();
+  if (sec === 'notifs') await renderNotificationsSection();
+}
+
+/* --------------------- 1. AMIGOS, PRESENCE E BLOQUEIOS --------------------- */
+async function renderFriendsSection() {
+  if (!window.SB?.services?.amigos) return;
+  const acceptedEl = $('#friendsAcceptedList');
+  const pendingEl = $('#friendsPendingList');
+  const blockedEl = $('#friendsBlockedList');
+  if (!acceptedEl) return;
+
+  try {
+    const data = await window.SB.services.amigos.listarRelacoes();
+    const presence = window.SB.services.amigos.getPresenceState() || {};
+
+    if (!data.accepted.length) {
+      acceptedEl.innerHTML = `<div class="empty">NENHUM ALIADO ADICIONADO AINDA.<br>CONVIDE PELO @USERNAME ACIMA!</div>`;
+    } else {
+      acceptedEl.innerHTML = data.accepted.map(f => {
+        const p = f.peer || {};
+        const st = presence[f.peerId] || 'offline';
+        const stLabel = st === 'playing' ? '🎮 EM MISSÃO NA CIDADE' : st === 'online' ? '● ONLINE AGORA' : '○ OFFLINE';
+        return `
+          <div class="social-item">
+            <div class="social-user-meta">
+              <span class="presence-dot ${st}" title="${stLabel}"></span>
+              <div>
+                <div style="font-weight:700;font-size:14px">@${escapeHTML(p.username || 'agente')} <span style="color:var(--lime);font-size:11px">NV.${p.level || 1}</span></div>
+                <div style="font-size:11px;color:var(--mint)">${stLabel} • 🔥 ${p.streak_atual || 0}d</div>
+              </div>
+            </div>
+            <div class="social-actions">
+              <button type="button" class="small-btn" data-open-dm="${f.peerId}" data-dm-name="@${escapeHTML(p.username || 'agente')}">💬 DM</button>
+              <button type="button" class="small-btn" data-remove-friend="${f.id}" title="Desfazer amizade">✕</button>
+              <button type="button" class="small-btn" data-block-user="${f.peerId}" title="Bloquear agente">🚫</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    const allPending = [...data.incoming, ...data.outgoing];
+    if (!allPending.length) {
+      pendingEl.innerHTML = `<div class="empty">NENHUMA SOLICITAÇÃO PENDENTE.</div>`;
+    } else {
+      pendingEl.innerHTML = allPending.map(f => {
+        const p = f.peer || {};
+        const isIncoming = f.addressee_id === window.currentUser?.id;
+        return `
+          <div class="social-item">
+            <div>
+              <div style="font-weight:700">@${escapeHTML(p.username || 'agente')} <small style="color:var(--cyan)">(NV.${p.level || 1})</small></div>
+              <div style="font-size:11px;opacity:.8">${isIncoming ? 'RECEBIDO • AGUARDANDO SUA RESPOSTA' : 'ENVIADO • AGUARDANDO CONFIRMAÇÃO'}</div>
+            </div>
+            <div class="social-actions">
+              ${isIncoming
+                ? `<button type="button" class="small-btn" style="border-color:var(--lime);color:var(--lime)" data-accept-friend="${f.id}">✓ ACEITAR</button>
+                   <button type="button" class="small-btn" data-reject-friend="${f.id}">✕ RECUSAR</button>`
+                : `<button type="button" class="small-btn" data-remove-friend="${f.id}">CANCELAR</button>`
+              }
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    if (!data.blocks.length) {
+      blockedEl.innerHTML = `<div class="empty">NENHUM AGENTE BLOQUEADO.</div>`;
+    } else {
+      blockedEl.innerHTML = data.blocks.map(b => `
+        <div class="social-item">
+          <div style="font-size:12px">🚫 ID: <b>${escapeHTML(b.blocked_id.slice(0, 8))}...</b></div>
+          <button type="button" class="small-btn" data-unblock-user="${b.blocked_id}">DESBLOQUEAR</button>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    acceptedEl.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+/* --------------------- 2. CHAT REALTIME (GLOBAL, GRUPO E DM) --------------------- */
+async function renderChatSection() {
+  if (!window.SB?.services?.chat) return;
+  const listEl = $('#chatConversationsList');
+  if (!listEl) return;
+
+  try {
+    const convs = await window.SB.services.chat.listarConversas();
+    if (!convs.length) {
+      listEl.innerHTML = `<div class="empty">NENHUM CANAL DISPONÍVEL.</div>`;
+      return;
+    }
+
+    if (!convs.some(c => c.id === activeConversationId)) {
+      activeConversationId = convs[0].id;
+      activeConversationTitle = convs[0].title || '🌐 REDE GLOBAL DE AGENTES';
+    }
+
+    listEl.innerHTML = convs.map(c => {
+      const icon = c.type === 'global' ? '🌐' : c.type === 'group' ? '🛡️' : '💬';
+      const label = c.title || (c.type === 'global' ? 'REDE GLOBAL' : c.type === 'group' ? 'CHAT DO ESQUADRÃO' : 'MENSAGEM DIRETA');
+      return `
+        <button type="button" class="chat-conv-btn ${c.id === activeConversationId ? 'active' : ''}" data-select-conv="${c.id}" data-conv-title="${escapeHTML(icon + ' ' + label)}">
+          <span>${icon} ${escapeHTML(label)}</span>
+          ${c.unread_count > 0 ? `<span class="mini-badge">${c.unread_count}</span>` : ''}
+        </button>`;
+    }).join('');
+
+    await openChatConversation(activeConversationId, activeConversationTitle);
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+async function openChatConversation(convId, title) {
+  activeConversationId = convId;
+  if (title) activeConversationTitle = title;
+  $('#chatActiveTitle').textContent = activeConversationTitle;
+  const box = $('#chatMessagesBox');
+  box.innerHTML = `<div class="empty">SINCRONIZANDO MENSAGENS CRIPTOGRAFADAS...</div>`;
+
+  document.querySelectorAll('.chat-conv-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.selectConv === convId);
+  });
+
+  try {
+    const page = await window.SB.services.chat.carregarMensagens(convId, { limit: 30 });
+    loadedChatMessages = page.messages || [];
+    $('#chatLoadMoreBtn')?.classList.toggle('hidden', !page.hasMore);
+    await renderChatMessagesList(true);
+
+    await window.SB.services.chat.marcarComoLida(convId);
+    refreshUnreadBadges();
+
+    await window.SB.services.chat.conectarConversaRealtime(convId, {
+      onNewMessage: async newMsg => {
+        if (!loadedChatMessages.some(m => m.id === newMsg.id)) {
+          loadedChatMessages.push(newMsg);
+          await renderChatMessagesList(true);
+          await window.SB.services.chat.marcarComoLida(convId);
+        }
+      },
+      onTyping: payload => {
+        if (!payload?.username || payload.user_id === window.currentUser?.id) return;
+        clearTimeout(typingUsersMap[payload.username]);
+        typingUsersMap[payload.username] = setTimeout(() => {
+          delete typingUsersMap[payload.username];
+          updateTypingIndicatorUI();
+        }, 2600);
+        updateTypingIndicatorUI();
+      }
+    });
+  } catch (err) {
+    box.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+function updateTypingIndicatorUI() {
+  const el = $('#chatTypingIndicator');
+  if (!el) return;
+  const names = Object.keys(typingUsersMap);
+  if (!names.length) {
+    el.classList.add('hidden');
+    el.textContent = '';
+  } else {
+    el.classList.remove('hidden');
+    el.textContent = `⌨ ${names.map(n => '@' + n).join(', ')} está digitando...`;
+  }
+}
+
+async function renderChatMessagesList(scrollToBottom = false) {
+  const box = $('#chatMessagesBox');
+  if (!box) return;
+  if (!loadedChatMessages.length) {
+    box.innerHTML = `<div class="empty">NENHUMA TRANSMISSÃO NESTE CANAL AINDA. SEJA O PRIMEIRO!</div>`;
+    return;
+  }
+
+  box.innerHTML = loadedChatMessages.map(m => {
+    const isMine = m.sender_id === window.currentUser?.id;
+    const senderName = m.is_system ? 'SISTEMA HUD' : `@${m.sender?.username || 'agente'}`;
+    const timeStr = new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="chat-msg ${isMine ? 'mine' : ''} ${m.is_system ? 'system' : ''} ${m.flagged_for_review ? 'flagged' : ''}">
+        <div class="chat-msg-head">
+          <span>${escapeHTML(senderName)} ${m.sender?.level ? `(NV.${m.sender.level})` : ''}</span>
+          <span>
+            ${timeStr}
+            ${!isMine && !m.is_system ? `<button type="button" class="icon-btn" style="padding:0 4px;font-size:10px;margin-left:4px" data-report-msg="${m.id}" title="Denunciar mensagem">⚑</button>` : ''}
+          </span>
+        </div>
+        <div class="chat-msg-body">${escapeHTML(m.content)}</div>
+        ${m.attachment_path ? `<div style="margin-top:4px;font-size:11px;color:var(--cyan)">📎 Anexo protegido: <button type="button" class="small-btn" data-open-chat-att="${escapeHTML(m.attachment_path)}">ABRIR IMAGEM</button></div>` : ''}
+      </div>`;
+  }).join('');
+
+  if (scrollToBottom) {
+    box.scrollTop = box.scrollHeight;
+  }
+}
+
+/* --------------------- 3. ESQUADRÕES (GROUPS) & METAS SEMANAIS --------------------- */
+async function renderGroupsSection() {
+  const wrap = $('#groupContainer');
+  if (!wrap || !window.SB?.services?.grupos) return;
+  wrap.innerHTML = `<div class="empty">CARREGANDO DADOS DO ESQUADRÃO...</div>`;
+
+  try {
+    const myGroupData = await window.SB.services.grupos.obterMeuGrupo();
+
+    if (!myGroupData) {
+      const publicGroups = await window.SB.services.grupos.listarGruposPublicos();
+      wrap.innerHTML = `
+        <div class="social-two-col">
+          <div class="social-card">
+            <div class="panel-title">FUNDAR NOVO ESQUADRÃO (MÁX. 30 AGENTES)</div>
+            <form id="createGroupForm" style="display:flex;flex-direction:column;gap:10px">
+              <input type="text" class="input" id="newGroupName" maxlength="32" required placeholder="Nome único do Esquadrão (ex.: ESQUADRÃO NEON)">
+              <input type="text" class="input" id="newGroupDesc" maxlength="240" placeholder="Lema ou descrição tática do clã...">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <select class="input" id="newGroupJoinType">
+                  <option value="open">ABERTO (ENTRADA IMEDIATA)</option>
+                  <option value="invite">APENAS POR CÓDIGO/CONVITE</option>
+                  <option value="request">SOLICITAÇÃO</option>
+                </select>
+                <label class="btn ghost" style="text-align:center;cursor:pointer">
+                  🛡️ EMBLEMA (OPCIONAL)
+                  <input type="file" id="newGroupEmblemFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+                </label>
+              </div>
+              <button type="submit" class="btn green">⚡ CRIAR ESQUADRÃO</button>
+            </form>
+
+            <div class="panel-title" style="margin-top:18px">ENTRAR POR CÓDIGO DE CONVITE</div>
+            <form id="joinGroupByCodeForm" class="social-bar-form" style="margin-bottom:0">
+              <input type="text" class="input" id="groupInviteCodeInput" maxlength="12" placeholder="Código do Esquadrão (ex.: OMEGA77)">
+              <button type="submit" class="btn ghost">ENTRAR</button>
+            </form>
+          </div>
+
+          <div class="social-card">
+            <div class="panel-title">ESQUADRÕES ATIVOS NA REDE</div>
+            <div class="social-list">
+              ${publicGroups.length ? publicGroups.map(g => `
+                <div class="social-item">
+                  <div>
+                    <div style="font-weight:700;color:var(--lime)">🛡️ ${escapeHTML(g.name)} <small style="color:var(--cyan)">(${g.member_count}/30)</small></div>
+                    <div style="font-size:11px;opacity:.8;text-transform:none">${escapeHTML(g.description || 'Sem descrição.')}</div>
+                  </div>
+                  ${g.join_type === 'open'
+                    ? `<button type="button" class="small-btn" data-join-group-id="${g.id}">ENTRAR</button>`
+                    : `<span class="badge media">${g.join_type.toUpperCase()}</span>`
+                  }
+                </div>
+              `).join('') : `<div class="empty">NENHUM ESQUADRÃO CRIADO AINDA.</div>`}
+            </div>
+          </div>
+        </div>
+      `;
+
+      $('#createGroupForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const name = $('#newGroupName').value.trim();
+        const description = $('#newGroupDesc').value.trim();
+        const joinType = $('#newGroupJoinType').value;
+        const emblemFile = $('#newGroupEmblemFile')?.files?.[0] || null;
+        try {
+          setSyncStatus('syncing', 'CRIANDO ESQUADRÃO...');
+          let emblemUrl = null;
+          if (emblemFile) {
+            emblemUrl = await window.SB.services.grupos.uploadEmblema(emblemFile);
+          }
+          await window.SB.services.grupos.criarGrupo({ name, description, emblemUrl, joinType });
+          setSyncStatus('online');
+          toast(`ESQUADRÃO "${name.toUpperCase()}" FUNDADO COM SUCESSO!`);
+          await renderGroupsSection();
+        } catch (err) {
+          setSyncStatus('error');
+          toast(err.message, true);
+        }
+      });
+
+      $('#joinGroupByCodeForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const codigo = $('#groupInviteCodeInput').value.trim();
+        if (!codigo) return;
+        try {
+          await window.SB.services.grupos.entrarGrupo({ codigo });
+          toast('VOCÊ ENTROU NO ESQUADRÃO!');
+          await renderGroupsSection();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      });
+
+      wrap.querySelectorAll('[data-join-group-id]').forEach(btn => {
+        btn.onclick = async () => {
+          try {
+            await window.SB.services.grupos.entrarGrupo({ groupId: btn.dataset.joinGroupId });
+            toast('VOCÊ ENTROU NO ESQUADRÃO!');
+            await renderGroupsSection();
+          } catch (err) {
+            toast(err.message, true);
+          }
+        };
+      });
+      return;
+    }
+
+    // Usuário pertence a um Esquadrão
+    const { group, myRole, members, goals } = myGroupData;
+    const isLeader = myRole === 'leader';
+    const isOfficerOrLeader = myRole === 'leader' || myRole === 'officer';
+
+    wrap.innerHTML = `
+      <div class="social-two-col">
+        <div class="social-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+            <div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--lime)">
+                🛡️ ${escapeHTML(group.name)}
+              </div>
+              <div style="font-size:12px;color:var(--mint);text-transform:none">${escapeHTML(group.description || '')}</div>
+              <div style="font-size:11px;margin-top:6px;color:var(--cyan)">
+                CÓDIGO DE CONVITE: <b>${escapeHTML(group.invite_code)}</b> • SEU CARGO: <b>${myRole.toUpperCase()}</b>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${group.conversation_id ? `<button type="button" class="small-btn" id="openGroupChatBtn">💬 CHAT DO CLÃ</button>` : ''}
+              <button type="button" class="small-btn" id="leaveGroupBtn" style="border-color:#FF5A5A;color:#FF8080">🚪 SAIR</button>
+            </div>
+          </div>
+
+          <div class="panel-title">METAS SEMANAIS COLETIVAS (ATUALIZADAS VIA TRIGGER)</div>
+          <div class="social-list">
+            ${goals.length ? goals.map(gl => {
+              const pct = Math.min(100, Math.floor((gl.current_value / Math.max(1, gl.target_value)) * 100));
+              return `
+                <div class="social-item" style="flex-direction:column;align-items:stretch">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700">
+                    <span>${gl.completed ? '✓ ' : '🎯 '}${escapeHTML(gl.title)}</span>
+                    <span style="color:var(--lime)">${gl.current_value} / ${gl.target_value} (${pct}%) • 🪙 +${gl.reward_coins}</span>
+                  </div>
+                  <div class="group-goal-bar"><div class="group-goal-fill" style="width:${pct}%"></div></div>
+                </div>`;
+            }).join('') : `<div class="empty">NENHUMA META SEMANAL ATIVA.</div>`}
+          </div>
+        </div>
+
+        <div class="social-card">
+          <div class="panel-title">MEMBROS DO ESQUADRÃO (${members.length}/${group.max_members || 30})</div>
+          <div class="social-list">
+            ${members.map(m => {
+              const p = m.profile || {};
+              const isMe = m.user_id === window.currentUser?.id;
+              return `
+                <div class="social-item">
+                  <div>
+                    <div style="font-weight:700">
+                      @${escapeHTML(p.username || 'agente')}
+                      <span class="badge ${m.role === 'leader' ? 'epica' : m.role === 'officer' ? 'dificil' : 'facil'}">${m.role.toUpperCase()}</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--mint)">NV.${p.level || 1} • ⚡ ${p.xp_total || 0} XP</div>
+                  </div>
+                  <div class="social-actions">
+                    ${isLeader && !isMe && m.role === 'member' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="officer">▲ OFICIAL</button>` : ''}
+                    ${isLeader && !isMe && m.role === 'officer' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="member">▼ MEMBRO</button>` : ''}
+                    ${isOceanLeaderCanKick(isOfficerOrLeader, myRole, m.role, isMe) ? `<button type="button" class="small-btn" data-kick-member="${m.user_id}">✕ EXPULSAR</button>` : ''}
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    $('#openGroupChatBtn')?.addEventListener('click', async () => {
+      activeConversationId = group.conversation_id;
+      activeConversationTitle = `🛡️ ${group.name}`;
+      await switchSocialSubSection('chat');
+    });
+
+    $('#leaveGroupBtn')?.addEventListener('click', async () => {
+      if (!confirm('Deseja sair do esquadrão? (Se você for o líder, a liderança será transferida automaticamente).')) return;
+      try {
+        await window.SB.services.grupos.sairGrupo(group.id);
+        toast('VOCÊ SAIU DO ESQUADRÃO.');
+        await renderGroupsSection();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+
+    wrap.querySelectorAll('[data-promote-member]').forEach(btn => {
+      btn.onclick = async () => {
+        try {
+          await window.SB.services.grupos.promoverMembro(group.id, btn.dataset.promoteMember, btn.dataset.role);
+          toast('CARGO ATUALIZADO!');
+          await renderGroupsSection();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      };
+    });
+
+    wrap.querySelectorAll('[data-kick-member]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Expulsar este agente do esquadrão?')) return;
+        try {
+          await window.SB.services.grupos.expulsarMembro(group.id, btn.dataset.kickMember);
+          toast('AGENTE EXPULSO DO ESQUADRÃO.');
+          await renderGroupsSection();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      };
+    });
+  } catch (err) {
+    wrap.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+function isOceanLeaderCanKick(isOfficerOrLeader, myRole, targetRole, isMe) {
+  if (isMe || !isOfficerOrLeader) return false;
+  if (myRole === 'leader') return true;
+  return myRole === 'officer' && targetRole === 'member';
+}
+
+/* --------------------- 4. SALA COOPERATIVA MULTIPLAYER --------------------- */
+async function renderCoopLobbyUI() {
+  const box = $('#coopLobbyContent');
+  if (!box || !window.SB?.services?.multiplayer) return;
+  const active = window.SB.services.multiplayer.getActiveRoomInfo();
+  if (!active.roomId) {
+    box.innerHTML = `<div class="empty">NENHUMA SALA ATIVA NO MOMENTO.<br>CRIE UMA SALA OU DIGITE O CÓDIGO DE UM ALIADO.</div>`;
+    return;
+  }
+
+  try {
+    const players = await window.SB.services.multiplayer.listarJogadoresSala(active.roomId);
+    box.innerHTML = `
+      <div style="text-align:left">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <span style="font-size:11px;color:var(--mint)">CÓDIGO DA SALA:</span>
+            <b style="font-family:'Orbitron',sans-serif;font-size:18px;color:var(--lime);margin-left:6px">${escapeHTML(active.code || '')}</b>
+          </div>
+          <span class="badge ${active.isHost ? 'epica' : 'facil'}">${active.isHost ? 'HOST (AUTORIDADE)' : 'CONECTADO'}</span>
+        </div>
+        <div class="panel-title">AGENTES NA FREQUÊNCIA (${players.length}/4)</div>
+        <div class="social-list" style="margin-bottom:12px">
+          ${players.map(p => `
+            <div class="social-item">
+              <span>🎮 <b>@${escapeHTML(p.profile?.username || p.character_snapshot?.nome || 'agente')}</b> (NV.${p.profile?.level || 1})</span>
+              <span style="color:var(--lime);font-size:11px">● PRONTO</span>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${active.isHost
+            ? `<button type="button" class="btn green" id="hostStartCoopBtn">▶ INICIAR MISSÃO CO-OP</button>`
+            : `<div style="font-size:12px;color:var(--cyan);padding:8px 0">AGUARDANDO O HOST INICIAR A PARTIDA...</div>`
+          }
+          <button type="button" class="btn red" id="leaveCoopRoomBtn">SAIR DA SALA</button>
+        </div>
+      </div>
+    `;
+
+    $('#hostStartCoopBtn')?.addEventListener('click', async () => {
+      try {
+        const started = await window.SB.services.multiplayer.iniciarSalaHost(active.roomId);
+        if (typeof window.startCoopCityMission === 'function') {
+          window.startCoopCityMission({ roomId: active.roomId, seed: started.seed, isHost: true });
+        }
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+
+    $('#leaveCoopRoomBtn')?.addEventListener('click', async () => {
+      await window.SB.services.multiplayer.sairDaSala();
+      renderCoopLobbyUI();
+      toast('VOCÊ SAIU DA SALA COOPERATIVA.');
+    });
+  } catch (err) {
+    box.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+async function connectCoopRoomEvents(roomId) {
+  await window.SB.services.multiplayer.conectarCanalSala(roomId, {
+    onPlayerJoinLeave: () => renderCoopLobbyUI(),
+    onRoomStarted: payload => {
+      const info = window.SB.services.multiplayer.getActiveRoomInfo();
+      toast('⚡ OPERAÇÃO CO-OP INICIADA! ENTRANDO NA CIDADE...');
+      if (typeof window.startCoopCityMission === 'function') {
+        window.startCoopCityMission({
+          roomId,
+          seed: payload?.seed || info.seed,
+          isHost: info.isHost
+        });
+      }
+    },
+    onRemotePlayerState: payload => {
+      if (typeof window.updateRemoteCoopPlayer === 'function') {
+        window.updateRemoteCoopPlayer(payload);
+      }
+    },
+    onHostWorldState: payload => {
+      if (typeof window.applyCoopWorldStateFromHost === 'function') {
+        window.applyCoopWorldStateFromHost(payload);
+      }
+    },
+    onClientAction: payload => {
+      if (typeof window.handleCoopClientHitOnHost === 'function') {
+        window.handleCoopClientHitOnHost(payload);
+      }
+    },
+    onReconnecting: st => {
+      if (st === 'reconnecting') setSyncStatus('syncing', 'RECONECTANDO SALA CO-OP...');
+      else if (st === 'connected') setSyncStatus('online');
+      else setSyncStatus('error', 'SALA DESCONECTADA');
+    }
+  });
+}
+
+/* --------------------- 5. NOTIFICAÇÕES EM TEMPO REAL --------------------- */
+async function renderNotificationsSection() {
+  const listEl = $('#notificationsList');
+  if (!listEl || !window.SB?.services?.amigos) return;
+  try {
+    const items = await window.SB.services.amigos.listarNotificacoes(40);
+    if (!items.length) {
+      listEl.innerHTML = `<div class="empty">NENHUMA NOTIFICAÇÃO REGISTRADA.</div>`;
+      return;
+    }
+    listEl.innerHTML = items.map(n => `
+      <div class="social-item ${!n.read_at ? 'unread' : ''}">
+        <div>
+          <div style="font-weight:700;color:var(--lime)">🔔 ${escapeHTML(n.title)}</div>
+          <div style="font-size:12px;text-transform:none;opacity:.9">${escapeHTML(n.body || '')}</div>
+          <div style="font-size:10px;color:var(--mint);margin-top:3px">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+        </div>
+        ${!n.read_at ? `<span class="badge facil">NOVO</span>` : ''}
+      </div>
+    `).join('');
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+/* --------------------- 6. RANKINGS E TEMPORADAS (SEASONS) --------------------- */
+async function renderRankingTab() {
+  if (!window.SB?.services?.ranking) return;
+  const listEl = $('#rankingListContainer');
+  const myPosEl = $('#rankMyPositionBar');
+  const seasonEl = $('#rankSeasonBanner');
+  if (!listEl) return;
+
+  listEl.innerHTML = `<div class="empty">CONSULTANDO CLASSIFICAÇÃO OFICIAL...</div>`;
+
+  try {
+    const [rows, myPos, season] = await Promise.all([
+      window.SB.services.ranking.obterRanking(activeRankCat, activeRankPeriod, 50, 0),
+      window.SB.services.ranking.minhaPosicao(activeRankCat, activeRankPeriod),
+      window.SB.services.ranking.obterTemporadaAtiva(activeRankPeriod === 'monthly' ? 'monthly' : 'weekly')
+    ]);
+
+    if (seasonEl) {
+      if (season) {
+        const endStr = new Date(season.ends_at).toLocaleDateString('pt-BR');
+        seasonEl.innerHTML = `
+          <span>🏆 <b>TEMPORADA ${season.period === 'monthly' ? 'MENSAL' : 'SEMANAL'} ATIVA</b> • ENCERRA EM ${endStr}</span>
+          <span style="color:var(--lime)">TOP 1–3 GANHAM +500/+300/+150 🪙 E MOLDURA EXCLUSIVA!</span>`;
+      } else {
+        seasonEl.innerHTML = `<span>🏆 CLASSIFICAÇÃO GERAL DE AGENTES E ESQUADRÕES</span>`;
+      }
+    }
+
+    if (myPosEl) {
+      if (myPos && myPos.rank_pos) {
+        myPosEl.innerHTML = `
+          <span>SUA POSIÇÃO ATUAL: <b>#${myPos.rank_pos}</b> DE ${myPos.total_entries}</span>
+          <span>VALOR: <b>${myPos.metric_value}</b> • TOP ${myPos.percentile || 100}%</span>`;
+      } else {
+        myPosEl.innerHTML = `<span>CONCLUA MISSÕES OU PARTIDAS PARA ENTRAR NESTE RANKING!</span>`;
+      }
+    }
+
+    if (!rows.length) {
+      listEl.innerHTML = `<div class="empty">NENHUM REGISTRO NESTA CATEGORIA/PERÍODO AINDA.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = rows.map(r => {
+      const pos = Number(r.rank_pos);
+      const topCls = pos === 1 ? 'top-1' : pos === 2 ? 'top-2' : pos === 3 ? 'top-3' : '';
+      const isMe = r.entity_id === window.currentUser?.id;
+      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `#${pos}`;
+      return `
+        <div class="rank-row ${topCls} ${isMe ? 'me' : ''}">
+          <div class="rank-pos">${medal}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px">
+              ${activeRankCat === 'groups' ? '🛡️ ' : '@'}${escapeHTML(r.display_name || 'agente')}
+              ${r.moldura ? `<span class="badge epica" title="Moldura de Temporada">★ ${escapeHTML(r.moldura)}</span>` : ''}
+            </div>
+            <div style="font-size:11px;color:var(--mint)">
+              ${activeRankCat === 'groups' ? `Membros: ${r.level || 1}/30` : `Nível ${r.level || 1}`}
+            </div>
+          </div>
+          <div class="rank-val">${r.metric_value} <small style="font-size:10px;opacity:.8">${escapeHTML(r.extra_label || '')}</small></div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+function bindSocialAndRankingEvents() {
+  // Sub-abas sociais
+  document.querySelectorAll('[data-social-sec]').forEach(btn => {
+    btn.addEventListener('click', () => switchSocialSubSection(btn.dataset.socialSec));
+  });
+
+  // Enviar pedido de amizade
+  $('#addFriendForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = $('#friendUsernameInput');
+    const username = input.value.trim();
+    if (!username) return;
+    try {
+      const res = await window.SB.services.amigos.enviarPedido(username);
+      input.value = '';
+      toast(res.status === 'accepted' ? 'AMIZADE CONECTADA!' : `PEDIDO ENVIADO PARA @${res.target_username.toUpperCase()}!`);
+      await renderFriendsSection();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  // Cliques delegados nas listas de amigos
+  $('#socialSecFriends')?.addEventListener('click', async e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    try {
+      if (btn.dataset.acceptFriend) {
+        await window.SB.services.amigos.responderPedido(btn.dataset.acceptFriend, true);
+        toast('PEDIDO DE AMIZADE ACEITO!');
+        await renderFriendsSection();
+      } else if (btn.dataset.rejectFriend) {
+        await window.SB.services.amigos.responderPedido(btn.dataset.rejectFriend, false);
+        toast('SOLICITAÇÃO RECUSADA.');
+        await renderFriendsSection();
+      } else if (btn.dataset.removeFriend) {
+        await window.SB.services.amigos.removerAmizade(btn.dataset.removeFriend);
+        toast('CONEXÃO REMOVIDA.');
+        await renderFriendsSection();
+      } else if (btn.dataset.blockUser) {
+        if (!confirm('Bloquear este usuário? Isso impedirá DMs e convites em qualquer direção.')) return;
+        await window.SB.services.amigos.bloquearUsuario(btn.dataset.blockUser);
+        toast('USUÁRIO BLOQUEADO.');
+        await renderFriendsSection();
+      } else if (btn.dataset.unblockUser) {
+        await window.SB.services.amigos.desbloquearUsuario(btn.dataset.unblockUser);
+        toast('USUÁRIO DESBLOQUEADO.');
+        await renderFriendsSection();
+      } else if (btn.dataset.openDm) {
+        const convId = await window.SB.services.chat.abrirOuCriarDM(btn.dataset.openDm);
+        activeConversationId = convId;
+        activeConversationTitle = `💬 DM: ${btn.dataset.dmName || 'ALIADO'}`;
+        await switchSocialSubSection('chat');
+      }
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  // Trocar canal de chat na barra lateral
+  $('#chatConversationsList')?.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-select-conv]');
+    if (!btn) return;
+    await openChatConversation(btn.dataset.selectConv, btn.dataset.convTitle);
+  });
+
+  // Paginação por cursor (carregar mensagens anteriores)
+  $('#chatLoadMoreBtn')?.addEventListener('click', async () => {
+    if (!loadedChatMessages.length) return;
+    const oldest = loadedChatMessages[0]?.created_at;
+    try {
+      const page = await window.SB.services.chat.carregarMensagens(activeConversationId, {
+        limit: 30,
+        beforeCreatedAt: oldest
+      });
+      loadedChatMessages = [...(page.messages || []), ...loadedChatMessages];
+      $('#chatLoadMoreBtn')?.classList.toggle('hidden', !page.hasMore);
+      await renderChatMessagesList(false);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  // Broadcast de "digitando..." (nunca gravado no banco)
+  $('#chatMessageInput')?.addEventListener('input', () => {
+    if (window.SB?.services?.chat && state.username) {
+      window.SB.services.chat.emitirDigitando(state.username);
+    }
+  });
+
+  // Anexo opcional de imagem no chat (máx. 2 MB)
+  $('#chatAttachmentInput')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast('A IMAGEM DO CHAT DEVE TER NO MÁXIMO 2 MB.', true);
+      e.target.value = '';
+      return;
+    }
+    pendingChatAttachmentFile = file;
+    const prev = $('#chatAttachPreview');
+    if (prev) {
+      prev.classList.remove('hidden');
+      prev.innerHTML = `<span>📎 ${escapeHTML(file.name)}</span> <button type="button" class="small-btn" id="clearChatAttachBtn">✕</button>`;
+      $('#clearChatAttachBtn').onclick = () => {
+        pendingChatAttachmentFile = null;
+        $('#chatAttachmentInput').value = '';
+        prev.classList.add('hidden');
+      };
+    }
+  });
+
+  // Enviar mensagem no chat (RPC com rate limit de 2s)
+  $('#chatSendForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = $('#chatMessageInput');
+    const content = input.value.trim();
+    if (!content && !pendingChatAttachmentFile) return;
+
+    const btn = $('#chatSendBtn');
+    btn.disabled = true;
+    try {
+      let attachmentPath = null;
+      if (pendingChatAttachmentFile) {
+        attachmentPath = await window.SB.services.chat.uploadAnexoChat(activeConversationId, pendingChatAttachmentFile);
+      }
+      const msg = await window.SB.services.chat.enviarMensagem(
+        activeConversationId,
+        content || '📷 [Imagem anexada]',
+        attachmentPath
+      );
+      input.value = '';
+      pendingChatAttachmentFile = null;
+      $('#chatAttachmentInput').value = '';
+      $('#chatAttachPreview')?.classList.add('hidden');
+
+      if (msg && !loadedChatMessages.some(m => m.id === msg.id)) {
+        loadedChatMessages.push({
+          ...msg,
+          sender: { username: state.username, level: state.level }
+        });
+        await renderChatMessagesList(true);
+      }
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Denunciar mensagem ou abrir anexo privado do chat
+  $('#chatMessagesBox')?.addEventListener('click', async e => {
+    const repBtn = e.target.closest('[data-report-msg]');
+    if (repBtn) {
+      const reason = prompt('Informe o motivo da denúncia (ex.: spam, ofensa, link suspeito):');
+      if (!reason) return;
+      try {
+        await window.SB.services.chat.denunciarMensagem(repBtn.dataset.reportMsg, reason);
+        toast('DENÚNCIA ENVIADA PARA A MODERAÇÃO.');
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+    const attBtn = e.target.closest('[data-open-chat-att]');
+    if (attBtn) {
+      try {
+        const signedUrl = await window.SB.services.chat.gerarUrlAnexo(attBtn.dataset.openChatAtt);
+        if (signedUrl) {
+          $('#lightboxImg').src = signedUrl;
+          openModal('lightbox');
+        }
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+  });
+
+  // Sala Co-op: Criar ou Entrar
+  $('#createCoopRoomBtn')?.addEventListener('click', async () => {
+    try {
+      const res = await window.SB.services.multiplayer.criarSala(4, state.profile || {});
+      toast(`SALA CO-OP CRIADA! CÓDIGO: ${res.code}`);
+      await connectCoopRoomEvents(res.room_id);
+      await renderCoopLobbyUI();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  $('#joinCoopRoomForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const code = $('#joinRoomCodeInput').value.trim();
+    if (!code) return;
+    try {
+      const res = await window.SB.services.multiplayer.entrarSala(code, state.profile || {});
+      toast(`CONECTADO À SALA ${res.code}!`);
+      await connectCoopRoomEvents(res.room_id);
+      await renderCoopLobbyUI();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  // Marcar notificações como lidas
+  $('#markAllNotifsReadBtn')?.addEventListener('click', async () => {
+    try {
+      await window.SB.services.amigos.marcarNotificacoesLidas();
+      await renderNotificationsSection();
+      await refreshUnreadBadges();
+      toast('TODAS AS NOTIFICAÇÕES FORAM MARCADAS COMO LIDAS.');
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  // Rankings: filtros de período e categoria
+  document.querySelectorAll('[data-rank-period]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-rank-period]').forEach(b => b.classList.toggle('active', b === btn));
+      activeRankPeriod = btn.dataset.rankPeriod;
+      renderRankingTab();
+    });
+  });
+
+  document.querySelectorAll('[data-rank-cat]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-rank-cat]').forEach(b => b.classList.toggle('active', b === btn));
+      activeRankCat = btn.dataset.rankCat;
+      renderRankingTab();
+    });
+  });
 }
 
 let authSubscription = null;

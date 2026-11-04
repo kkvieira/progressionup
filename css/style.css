@@ -719,4 +719,222 @@ select.input option{ background:var(--navy); }
   .btn-row .btn{ flex:1 1 100%; text-align:center; }
   .add-btn{ width:100%; padding:13px 16px; font-size:13px; text-align:center; }
 }
+
+/* =========================================================
+   CAMADA SOCIAL, CHAT, ESQUADRÕES, CO-OP & RANKINGS (HUD)
+   ========================================================= */
+.tab-badge, .mini-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px;
+  border-radius:99px; background:#FF4D4D; color:#fff;
+  font-family:'Orbitron',sans-serif; font-size:10px; font-weight:900;
+  margin-left:5px; box-shadow:0 0 8px rgba(255,77,77,.65);
+}
+.social-subnav{
+  display:flex; flex-wrap:wrap; gap:6px;
+}
+.social-subnav .small-btn.active,
+.rank-period-switch .small-btn.active,
+.rank-cat-tabs .small-btn.active{
+  background:linear-gradient(90deg, rgba(124,255,58,.24), rgba(0,240,255,.22));
+  border-color:var(--lime); color:#fff;
+  box-shadow:0 0 12px rgba(124,255,58,.35);
+}
+.social-bar-form{
+  display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;
+}
+.social-bar-form .input{ flex:1; min-width:200px; text-transform:none; }
+.social-two-col{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+.social-card{
+  background:rgba(6,13,22,.68);
+  border:1px solid rgba(31,209,176,.32);
+  border-radius:8px; padding:14px;
+}
+.social-list{
+  display:flex; flex-direction:column; gap:8px;
+  max-height:360px; overflow-y:auto; padding-right:4px;
+}
+.social-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-radius:6px;
+  background:rgba(11,22,36,.82);
+  border:1px solid rgba(31,209,176,.26);
+  transition:.18s;
+}
+.social-item:hover{ border-color:var(--cyan); }
+.social-item.unread{
+  border-color:var(--lime);
+  background:rgba(124,255,58,.08);
+}
+.social-user-meta{
+  display:flex; align-items:center; gap:10px; min-width:0;
+}
+.presence-dot{
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+  background:#5c6f84; box-shadow:0 0 6px rgba(92,111,132,.5);
+}
+.presence-dot.online{
+  background:var(--lime); box-shadow:0 0 10px var(--lime);
+}
+.presence-dot.playing{
+  background:var(--cyan); box-shadow:0 0 10px var(--cyan);
+}
+.social-actions{
+  display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+}
+
+/* Chat (Global, Grupo e DM) */
+.chat-layout{
+  display:grid; grid-template-columns:230px 1fr; gap:12px;
+  min-height:410px;
+}
+.chat-sidebar{
+  background:rgba(6,13,22,.72);
+  border:1px solid rgba(31,209,176,.3);
+  border-radius:8px; padding:10px;
+  display:flex; flex-direction:column;
+}
+.chat-conv-list{
+  display:flex; flex-direction:column; gap:6px;
+  overflow-y:auto; max-height:360px;
+}
+.chat-conv-btn{
+  width:100%; text-align:left; padding:9px 10px;
+  border-radius:6px; border:1px solid rgba(31,209,176,.22);
+  background:rgba(11,22,36,.75); color:var(--white);
+  font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px;
+  cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+  transition:.18s;
+}
+.chat-conv-btn:hover, .chat-conv-btn.active{
+  border-color:var(--lime);
+  background:rgba(124,255,58,.12);
+}
+.chat-main{
+  background:rgba(6,13,22,.72);
+  border:1px solid rgba(31,209,176,.3);
+  border-radius:8px; padding:12px;
+  display:flex; flex-direction:column;
+}
+.chat-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding-bottom:8px; margin-bottom:8px;
+  border-bottom:1px solid rgba(31,209,176,.25);
+  font-family:'Orbitron',sans-serif; font-size:12px; color:var(--cyan);
+}
+.chat-messages{
+  flex:1; min-height:260px; max-height:310px;
+  overflow-y:auto; display:flex; flex-direction:column; gap:8px;
+  padding:6px 4px;
+}
+.chat-msg{
+  padding:8px 11px; border-radius:7px;
+  background:rgba(15,31,48,.88);
+  border-left:3px solid var(--teal);
+  font-size:13px; text-transform:none;
+}
+.chat-msg.mine{
+  background:rgba(124,255,58,.11);
+  border-left-color:var(--lime);
+  align-self:flex-end;
+  min-width:45%;
+}
+.chat-msg.system{
+  background:rgba(0,240,255,.09);
+  border-left-color:var(--cyan);
+  font-size:12px; color:var(--cyan);
+}
+.chat-msg.flagged{
+  border-left-color:#FF5A5A;
+  opacity:.75;
+}
+.chat-msg-head{
+  display:flex; justify-content:space-between; gap:10px;
+  font-size:11px; color:var(--mint); margin-bottom:3px;
+  font-weight:700; text-transform:uppercase;
+}
+.chat-msg-body{
+  color:#fff; word-break:break-word; line-height:1.35;
+}
+.chat-msg-img{
+  margin-top:6px; max-width:210px; max-height:150px;
+  border-radius:6px; border:1px solid var(--teal); cursor:pointer;
+}
+.chat-typing{
+  font-size:11px; color:var(--lime); font-style:italic;
+  padding:3px 6px; text-transform:none;
+}
+.chat-input-bar{
+  display:flex; gap:8px; align-items:center; margin-top:8px;
+}
+.chat-input-bar .input{ flex:1; text-transform:none; }
+.chat-attach-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px; border-radius:6px;
+  border:1px solid var(--teal); background:rgba(31,209,176,.12);
+  cursor:pointer; font-size:17px;
+}
+.chat-attach-preview{
+  font-size:11px; color:var(--lime); margin-top:5px;
+  display:flex; align-items:center; gap:8px;
+}
+
+/* Esquadrões (Groups) & Metas */
+.group-goal-bar{
+  height:12px; border-radius:99px; background:rgba(6,13,22,.9);
+  border:1px solid rgba(31,209,176,.4); overflow:hidden; margin:6px 0;
+}
+.group-goal-fill{
+  height:100%; background:linear-gradient(90deg, var(--teal), var(--lime));
+  transition:width .35s ease;
+}
+
+/* Rankings & Seasons */
+.rank-period-switch{ display:flex; gap:6px; }
+.rank-cat-tabs{
+  display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;
+}
+.rank-season-banner{
+  padding:9px 12px; border-radius:6px;
+  background:linear-gradient(90deg, rgba(0,240,255,.12), rgba(124,255,58,.1));
+  border:1px solid rgba(0,240,255,.35);
+  font-size:12px; color:var(--mint); margin-bottom:10px;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+.rank-my-pos{
+  padding:10px 12px; border-radius:6px;
+  background:rgba(124,255,58,.12);
+  border:1px solid var(--lime);
+  font-family:'Orbitron',sans-serif; font-size:12px; color:var(--lime);
+  margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;
+}
+.rank-row{
+  display:grid; grid-template-columns:46px 1fr auto;
+  align-items:center; gap:10px;
+  padding:10px 14px; border-radius:6px;
+  background:rgba(11,22,36,.85);
+  border:1px solid rgba(31,209,176,.26);
+}
+.rank-row.top-1{ border-color:#FFD700; box-shadow:0 0 12px rgba(255,215,0,.22); }
+.rank-row.top-2{ border-color:#C0C0C0; }
+.rank-row.top-3{ border-color:#CD7F32; }
+.rank-row.me{ background:rgba(124,255,58,.12); border-color:var(--lime); }
+.rank-pos{
+  font-family:'Orbitron',sans-serif; font-weight:900; font-size:15px;
+  color:var(--cyan);
+}
+.rank-row.top-1 .rank-pos{ color:#FFD700; }
+.rank-row.top-2 .rank-pos{ color:#E2E8F0; }
+.rank-row.top-3 .rank-pos{ color:#F6AD55; }
+.rank-val{
+  font-family:'Orbitron',sans-serif; font-weight:900; font-size:14px;
+  color:var(--lime);
+}
+
+@media (max-width:760px){
+  .social-two-col{ grid-template-columns:1fr; }
+  .chat-layout{ grid-template-columns:1fr; }
+}
 @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
