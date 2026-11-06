@@ -1,4 +1,4 @@
-# ⚡ PROGRESSION UP — Sistema de Missões & Produtividade Gamificada
+# PROGRESSION UP — Sistema de Missões & Produtividade Gamificada
 
 <p align="center">
   <img src="img/favicon.png" alt="Progression Up Logo" width="96" height="96" />
@@ -6,6 +6,10 @@
 
 <p align="center">
   <strong>Transforme sua rotina em uma jornada épica. Conclua tarefas, ganhe XP, evolua seu agente e jogue com amigos.</strong>
+</p>
+
+<p align="center">
+  <a href="https://progressionup.vercel.app/"><strong>Jogue agora online: https://progressionup.vercel.app/</strong></a>
 </p>
 
 <p align="center">
@@ -17,7 +21,13 @@
 
 ---
 
-## 🌌 Visão & Proposta
+## Acesso Rápido
+
+- **Deploy em Produção:** [https://progressionup.vercel.app/](https://progressionup.vercel.app/)
+
+---
+
+## Visão & Proposta
 
 Inspirado na estética **Cyberpunk** e no conceito de evolução contínua (*Solo Leveling*), o **Progression Up** é uma plataforma que transforma a gestão de hábitos e metas diárias em uma experiência imersiva de RPG.
 
@@ -25,32 +35,32 @@ Em vez de listas de afazeres monótonas, cada compromisso real se torna uma **mi
 
 ---
 
-## 🚀 Principais Funcionalidades
+## Principais Funcionalidades
 
-### 🎯 1. Sistema de Missões & Gamificação Pessoal
+### 1. Sistema de Missões & Gamificação Pessoal
 - **Categorias de Habilidades:** Missões divididas por áreas da vida (Físico, Mente, Foco, Social, etc.).
 - **Graus de Dificuldade:** Ranks F, E, D, C, B, A e S com recompensas proporcionais de XP e fichas.
 - **Sequência Diária (Streak):** Bonificações para quem mantém a disciplina diária contínua.
 - **Histórico & Logs:** Registro detalhado com metas alcançadas e marcos históricos.
 
-### 👤 2. Armário & Editor de Avatar 3D
+### 2. Armário & Editor de Avatar 3D
 - **Pedestal Holográfico:** Avatar montado sobre um pedestal giratório 3D com efeitos de luz cyberpunk.
 - **Customização Total:** Cabelos, tons de pele, roupas, expressões faciais, calças, acessórios e armas.
 - **Classes & Bônus de Atributos:** Especializações que conferem bônus específicos em tarefas e minigames.
 - **Controles Intuitivos:** Carrossel em arco navegável por toque, roda do mouse ou atalhos de teclado ($\leftarrow \rightarrow \uparrow \downarrow$).
 
-### 🕹️ 3. Minigame Plataforma: "Incursão na Cidade"
+### 3. Minigame Plataforma: "Incursão na Cidade"
 - **Ação Beat 'em Up 2D em Canvas:** Use suas fichas ganhas nas tarefas diárias para entrar em incursões táticas.
 - **Combate & Habilidades:** Ataques corpo a corpo, pulo duplo, descida rápida em plataformas vazadas e habilidades especiais com recarga.
 - **Inimigos & Chefões:** Drones de patrulha, ciborgues, armadilhas urbanas e chefões com padrões de ataque únicos.
 - **Radar Tático em Tempo Real:** Varredura tática estilo sonar que detecta a aproximação de inimigos e chefes ao redor.
 
-### 📱 4. Experiência Mobile & PWA (Console Retrô)
+### 4. Experiência Mobile & PWA (Console Retrô)
 - **Controles Virtuais Estilo Console:** Joystick analógico suave, botões de ação ergonômicos e atalhos START/SELECT.
 - **Modo Retrato & Paisagem:** Visualização adaptada com proporção 16:9 dinâmica e modo tela cheia com trava de orientação.
 - **Instalação como Aplicativo Nativo (PWA):** Suporte offline-first via Service Worker, manifesto web e ícones adaptativos para Android, iOS e Desktop.
 
-### 🌐 5. Comunidade, Esquadrões & Multiplayer Co-op
+### 5. Comunidade, Esquadrões & Multiplayer Co-op
 - **Sistema de Amizades & Presença:** Status em tempo real (*online*, *em missão*, *ausente*).
 - **Esquadrões (Guildas):** Crie grupos, recrute membros e colabore em **Metas Semanais Compartilhadas**.
 - **Chat em Tempo Real:** Conversas privadas (DMs) e canais de esquadrão com envio de anexos criptografados e moderação de conteúdo.
@@ -59,7 +69,7 @@ Em vez de listas de afazeres monótonas, cada compromisso real se torna uma **mi
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Front-end:** HTML5 semântico, CSS3 Moderno (Custom Properties, Flexbox, Grid, Animações 3D), JavaScript puro (ES6+ modular, sem frameworks pesados).
 - **Engine do Jogo:** HTML5 Canvas 2D com física de plataforma, partículas e áudio sintetizado via Web Audio API.
@@ -69,7 +79,7 @@ Em vez de listas de afazeres monótonas, cada compromisso real se torna uma **mi
 
 ---
 
-## 📦 Como Executar o Projeto Localmente
+## Como Executar o Projeto Localmente
 
 O projeto foi construído em arquitetura estática e modular, não exigindo etapas de compilação pesadas.
 
@@ -110,7 +120,7 @@ Acesse no navegador: `http://localhost:5500`
 
 ---
 
-## 🗄️ Configuração do Banco de Dados (Supabase)
+## Configuração do Banco de Dados (Supabase)
 
 O diretório [`supabase/`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trabalho/progression%20up/supabase/) contém toda a infraestrutura pronta:
 
@@ -124,11 +134,11 @@ O diretório [`supabase/`](file:///c:/Users/kaiky/OneDrive/%C3%81rea%20de%20Trab
 | `migrations/006_revoke_internal_functions.sql` | Restrição de segurança e fechamento de funções internas |
 | `functions/` | Edge Functions de moderação de chat e notificações automáticas |
 
-> 📖 **Para o guia completo de deploy das migrations, RLS e Edge Functions, consulte o arquivo [SUPABASE_SETUP.md](SUPABASE_SETUP.md).**
+> **Para o guia completo de deploy das migrations, RLS e Edge Functions, consulte o arquivo [SUPABASE_SETUP.md](SUPABASE_SETUP.md).**
 
 ---
 
-## 📂 Estrutura de Pastas
+## Estrutura de Pastas
 
 ```text
 progressionup/
@@ -155,13 +165,12 @@ progressionup/
 
 ---
 
-## 📜 Licença
+## Licença
 
 Distribuído sob a licença **MIT**. Consulte `LICENSE` para mais detalhes.
 
 ---
 
 <p align="center">
-  Desenvolvido com ⚡ foco e dedicação. <i>Evolua a cada missão!</i>
+  Desenvolvido com foco e dedicação. <i>Evolua a cada missão!</i>
 </p>
-
