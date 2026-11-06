@@ -55,7 +55,7 @@ const DEFAULT_GAME_STATE = () => ({
 const DEFAULT_STATE = () => ({
   version: 1,
   username: '',
-  privacy: 'public',
+  privacy: 'publico',
   moldura_equipada: null,
   level: 1,
   xp: 0,
@@ -830,7 +830,7 @@ async function loadAuthenticatedApp(user) {
     state = {
       version: 1,
       username: prof?.username || user.email?.split('@')[0] || 'agente',
-      privacy: prof?.privacy || 'public',
+      privacy: prof?.privacy || 'publico',
       moldura_equipada: prof?.moldura_equipada || null,
       level: prof?.level || 1,
       xp: prof?.xp_nivel_atual || 0,
@@ -941,15 +941,14 @@ function offerLocalStorageMigration(userId, legacy) {
 const SUPPORTED_OAUTH_PROVIDERS = [
   { id: 'google',  name: 'GOOGLE',  desc: 'OAuth 2.0 / OpenID Connect' },
   { id: 'discord', name: 'DISCORD', desc: 'OAuth 2.0 Identity' },
-  { id: 'github',  name: 'GITHUB',  desc: 'OAuth 2.0 Identity' },
-  { id: 'apple',   name: 'APPLE',   desc: 'OpenID Connect (Estrutura pronta)' }
+  { id: 'github',  name: 'GITHUB',  desc: 'OAuth 2.0 Identity' }
 ];
 
 async function openAccountSettings() {
   if (!window.currentUser) return;
   $('#accountEmailDisplay').textContent = `E-MAIL DA CONTA: ${window.currentUser.email || 'PROVEDOR EXTERNO'} • ID: ${window.currentUser.id.slice(0, 8)}`;
   $('#settingsUsername').value = state.username || '';
-  if ($('#settingsPrivacy')) $('#settingsPrivacy').value = state.privacy || 'public';
+  if ($('#settingsPrivacy')) $('#settingsPrivacy').value = ['publico', 'amigos', 'privado'].includes(state.privacy) ? state.privacy : 'publico';
   $('#settingsNewPassword').value = '';
   openModal('accountModal');
   await renderConnectedProviders();
@@ -1162,12 +1161,12 @@ function bindEvents() {
     e.preventDefault();
     if (!window.currentUser) return;
     const newName = $('#settingsUsername').value.trim();
-    const newPrivacy = $('#settingsPrivacy') ? $('#settingsPrivacy').value : 'public';
+    const newPrivacy = $('#settingsPrivacy') ? $('#settingsPrivacy').value : 'publico';
     const btn = $('#saveUsernameBtn');
     btn.disabled = true;
     try {
       const updated = await window.SB.perfil.atualizarUsername(window.currentUser.id, newName);
-      await window.SB.perfil.atualizarPrivacidade(window.currentUser.id, newPrivacy);
+      await window.SB.perfil.atualizarPrivacidade(window.currentUser.id, { privacy: newPrivacy });
       state.username = updated.username;
       state.privacy = newPrivacy;
       toast(`PERFIL ATUALIZADO: @${updated.username.toUpperCase()} (${newPrivacy.toUpperCase()})!`);
@@ -1309,28 +1308,27 @@ async function cleanupAllSocialSubscriptions() {
 async function initSocialRealtime(userId) {
   if (!window.SB?.services?.amigos) return;
   try {
-    await window.SB.services.amigos.conectarPresenceGlobal('online', () => {
+    window.SB.services.amigos.conectarPresenceGlobal(userId, 'online', () => {
       if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'friends') {
         renderFriendsSection();
       }
     });
 
-    window.SB.services.amigos.assinarEventosSociais(
-      userId,
-      () => {
+    window.SB.services.amigos.assinarEventosSociais(userId, {
+      onFriendshipChange: () => {
         if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'friends') {
           renderFriendsSection();
         }
         refreshUnreadBadges();
       },
-      newNotif => {
-        if (newNotif?.title) toast(`🔔 ${newNotif.title}`);
+      onNotification: newNotif => {
+        if (newNotif?.titulo) toast(`🔔 ${newNotif.titulo}`);
         refreshUnreadBadges();
         if (!$('#tabSocial')?.classList.contains('hidden') && activeSocialSec === 'notifs') {
           renderNotificationsSection();
         }
       }
-    );
+    });
 
     await refreshUnreadBadges();
   } catch {}
@@ -1339,12 +1337,15 @@ async function initSocialRealtime(userId) {
 async function refreshUnreadBadges() {
   if (!window.currentUser || !window.SB?.services?.amigos) return;
   try {
+    const uid = window.currentUser.id;
     const [notifs, convs] = await Promise.all([
-      window.SB.services.amigos.listarNotificacoes(30),
-      window.SB.services.chat.listarConversas()
+      window.SB.services.amigos.listarNotificacoes(uid, 30),
+      window.SB.services.chat?.listarConversasComNaoLidas
+        ? window.SB.services.chat.listarConversasComNaoLidas(uid).catch(() => [])
+        : Promise.resolve([])
     ]);
-    const unreadNotifs = (notifs || []).filter(n => !n.read_at).length;
-    const unreadChat = (convs || []).reduce((acc, c) => acc + (c.unread_count || 0), 0);
+    const unreadNotifs = (notifs || []).filter(n => !n.lida).length;
+    const unreadChat = (convs || []).reduce((acc, c) => acc + (c.unreadCount || 0), 0);
     const total = unreadNotifs + unreadChat;
 
     const mainBadge = $('#socialUnreadBadge');
@@ -1400,15 +1401,19 @@ async function renderFriendsSection() {
   if (!acceptedEl) return;
 
   try {
-    const data = await window.SB.services.amigos.listarRelacoes();
-    const presence = window.SB.services.amigos.getPresenceState() || {};
+    if (!window.currentUser) return;
+    const amigos = window.SB.services.amigos;
+    const data = await amigos.listarRelacoes(window.currentUser.id);
 
     if (!data.accepted.length) {
       acceptedEl.innerHTML = `<div class="empty">NENHUM ALIADO ADICIONADO AINDA.<br>CONVIDE PELO @USERNAME ACIMA!</div>`;
     } else {
       acceptedEl.innerHTML = data.accepted.map(f => {
-        const p = f.peer || {};
-        const st = presence[f.peerId] || 'offline';
+        const p = f.friendProfile || {};
+        const peerId = p.id;
+        // Presence usa 'online' | 'jogando' | 'offline'; a classe CSS do ponto usa 'playing'
+        const rawSt = amigos.obterStatusAgente(peerId);
+        const st = rawSt === 'jogando' ? 'playing' : rawSt;
         const stLabel = st === 'playing' ? '🎮 EM MISSÃO NA CIDADE' : st === 'online' ? '● ONLINE AGORA' : '○ OFFLINE';
         return `
           <div class="social-item">
@@ -1420,9 +1425,9 @@ async function renderFriendsSection() {
               </div>
             </div>
             <div class="social-actions">
-              <button type="button" class="small-btn" data-open-dm="${f.peerId}" data-dm-name="@${escapeHTML(p.username || 'agente')}">💬 DM</button>
+              <button type="button" class="small-btn" data-open-dm="${peerId}" data-dm-name="@${escapeHTML(p.username || 'agente')}">💬 DM</button>
               <button type="button" class="small-btn" data-remove-friend="${f.id}" title="Desfazer amizade">✕</button>
-              <button type="button" class="small-btn" data-block-user="${f.peerId}" title="Bloquear agente">🚫</button>
+              <button type="button" class="small-btn" data-block-user="${peerId}" title="Bloquear agente">🚫</button>
             </div>
           </div>`;
       }).join('');
@@ -1433,8 +1438,8 @@ async function renderFriendsSection() {
       pendingEl.innerHTML = `<div class="empty">NENHUMA SOLICITAÇÃO PENDENTE.</div>`;
     } else {
       pendingEl.innerHTML = allPending.map(f => {
-        const p = f.peer || {};
-        const isIncoming = f.addressee_id === window.currentUser?.id;
+        const p = f.friendProfile || {};
+        const isIncoming = f.direction === 'incoming';
         return `
           <div class="social-item">
             <div>
@@ -1457,7 +1462,7 @@ async function renderFriendsSection() {
     } else {
       blockedEl.innerHTML = data.blocks.map(b => `
         <div class="social-item">
-          <div style="font-size:12px">🚫 ID: <b>${escapeHTML(b.blocked_id.slice(0, 8))}...</b></div>
+          <div style="font-size:12px">🚫 <b>@${escapeHTML(b.blockedProfile?.username || b.blocked_id.slice(0, 8))}</b></div>
           <button type="button" class="small-btn" data-unblock-user="${b.blocked_id}">DESBLOQUEAR</button>
         </div>
       `).join('');
@@ -1474,7 +1479,8 @@ async function renderChatSection() {
   if (!listEl) return;
 
   try {
-    const convs = await window.SB.services.chat.listarConversas();
+    if (!window.currentUser) return;
+    const convs = await window.SB.services.chat.listarConversasComNaoLidas(window.currentUser.id);
     if (!convs.length) {
       listEl.innerHTML = `<div class="empty">NENHUM CANAL DISPONÍVEL.</div>`;
       return;
@@ -1482,16 +1488,17 @@ async function renderChatSection() {
 
     if (!convs.some(c => c.id === activeConversationId)) {
       activeConversationId = convs[0].id;
-      activeConversationTitle = convs[0].title || '🌐 REDE GLOBAL DE AGENTES';
+      activeConversationTitle = convs[0].titulo || '🌐 REDE GLOBAL DE AGENTES';
     }
 
     listEl.innerHTML = convs.map(c => {
-      const icon = c.type === 'global' ? '🌐' : c.type === 'group' ? '🛡️' : '💬';
-      const label = c.title || (c.type === 'global' ? 'REDE GLOBAL' : c.type === 'group' ? 'CHAT DO ESQUADRÃO' : 'MENSAGEM DIRETA');
+      // O serviço já devolve o título com ícone (ex.: "🌐 REDE GLOBAL", "💬 @FULANO", "🛡️ ESQUADRÃO [TAG]")
+      const fallback = c.tipo === 'global' ? '🌐 REDE GLOBAL' : c.tipo === 'group' ? '🛡️ CHAT DO ESQUADRÃO' : '💬 MENSAGEM DIRETA';
+      const label = c.titulo || fallback;
       return `
-        <button type="button" class="chat-conv-btn ${c.id === activeConversationId ? 'active' : ''}" data-select-conv="${c.id}" data-conv-title="${escapeHTML(icon + ' ' + label)}">
-          <span>${icon} ${escapeHTML(label)}</span>
-          ${c.unread_count > 0 ? `<span class="mini-badge">${c.unread_count}</span>` : ''}
+        <button type="button" class="chat-conv-btn ${c.id === activeConversationId ? 'active' : ''}" data-select-conv="${c.id}" data-conv-title="${escapeHTML(label)}">
+          <span>${escapeHTML(label)}</span>
+          ${c.unreadCount > 0 ? `<span class="mini-badge">${c.unreadCount}</span>` : ''}
         </button>`;
     }).join('');
 
@@ -1513,7 +1520,7 @@ async function openChatConversation(convId, title) {
   });
 
   try {
-    const page = await window.SB.services.chat.carregarMensagens(convId, { limit: 30 });
+    const page = await window.SB.services.chat.carregarMensagensPaginadas(convId, { limit: 30 });
     loadedChatMessages = page.messages || [];
     $('#chatLoadMoreBtn')?.classList.toggle('hidden', !page.hasMore);
     await renderChatMessagesList(true);
@@ -1521,7 +1528,7 @@ async function openChatConversation(convId, title) {
     await window.SB.services.chat.marcarComoLida(convId);
     refreshUnreadBadges();
 
-    await window.SB.services.chat.conectarConversaRealtime(convId, {
+    window.SB.services.chat.assinarConversa(convId, {
       onNewMessage: async newMsg => {
         if (!loadedChatMessages.some(m => m.id === newMsg.id)) {
           loadedChatMessages.push(newMsg);
@@ -1579,7 +1586,7 @@ async function renderChatMessagesList(scrollToBottom = false) {
           </span>
         </div>
         <div class="chat-msg-body">${escapeHTML(m.content)}</div>
-        ${m.attachment_path ? `<div style="margin-top:4px;font-size:11px;color:var(--cyan)">📎 Anexo protegido: <button type="button" class="small-btn" data-open-chat-att="${escapeHTML(m.attachment_path)}">ABRIR IMAGEM</button></div>` : ''}
+        ${m.attachment_url ? `<div style="margin-top:4px;font-size:11px;color:var(--cyan)">📎 Anexo protegido: <button type="button" class="small-btn" data-open-chat-att="${escapeHTML(m.signedAttachmentUrl || '')}">ABRIR IMAGEM</button></div>` : ''}
       </div>`;
   }).join('');
 
@@ -1595,16 +1602,18 @@ async function renderGroupsSection() {
   wrap.innerHTML = `<div class="empty">CARREGANDO DADOS DO ESQUADRÃO...</div>`;
 
   try {
-    const myGroupData = await window.SB.services.grupos.obterMeuGrupo();
+    if (!window.currentUser) return;
+    const myGroupData = await window.SB.services.grupos.carregarMeuGrupo(window.currentUser.id);
 
-    if (!myGroupData) {
+    if (!myGroupData?.inGroup) {
       const publicGroups = await window.SB.services.grupos.listarGruposPublicos();
       wrap.innerHTML = `
         <div class="social-two-col">
           <div class="social-card">
             <div class="panel-title">FUNDAR NOVO ESQUADRÃO (MÁX. 30 AGENTES)</div>
             <form id="createGroupForm" style="display:flex;flex-direction:column;gap:10px">
-              <input type="text" class="input" id="newGroupName" maxlength="32" required placeholder="Nome único do Esquadrão (ex.: ESQUADRÃO NEON)">
+              <input type="text" class="input" id="newGroupName" maxlength="32" minlength="3" required placeholder="Nome único do Esquadrão (ex.: ESQUADRÃO NEON)">
+              <input type="text" class="input" id="newGroupTag" maxlength="5" placeholder="TAG de 2 a 5 letras (opcional, ex.: NEON)">
               <input type="text" class="input" id="newGroupDesc" maxlength="240" placeholder="Lema ou descrição tática do clã...">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <select class="input" id="newGroupJoinType">
@@ -1633,11 +1642,11 @@ async function renderGroupsSection() {
               ${publicGroups.length ? publicGroups.map(g => `
                 <div class="social-item">
                   <div>
-                    <div style="font-weight:700;color:var(--lime)">🛡️ ${escapeHTML(g.name)} <small style="color:var(--cyan)">(${g.member_count}/30)</small></div>
-                    <div style="font-size:11px;opacity:.8;text-transform:none">${escapeHTML(g.description || 'Sem descrição.')}</div>
+                    <div style="font-weight:700;color:var(--lime)">🛡️ [${escapeHTML(g.tag || '')}] ${escapeHTML(g.nome)} <small style="color:var(--cyan)">(${g.total_membros || 1}/${g.max_members || 30})</small></div>
+                    <div style="font-size:11px;opacity:.8;text-transform:none">${escapeHTML(g.descricao || 'Sem descrição.')}</div>
                   </div>
                   ${g.join_type === 'open'
-                    ? `<button type="button" class="small-btn" data-join-group-id="${g.id}">ENTRAR</button>`
+                    ? `<button type="button" class="small-btn" data-join-group-id="${g.group_id}">ENTRAR</button>`
                     : `<span class="badge media">${g.join_type.toUpperCase()}</span>`
                   }
                 </div>
@@ -1650,16 +1659,22 @@ async function renderGroupsSection() {
       $('#createGroupForm')?.addEventListener('submit', async e => {
         e.preventDefault();
         const name = $('#newGroupName').value.trim();
+        const tag = ($('#newGroupTag')?.value || '').trim();
         const description = $('#newGroupDesc').value.trim();
         const joinType = $('#newGroupJoinType').value;
         const emblemFile = $('#newGroupEmblemFile')?.files?.[0] || null;
         try {
           setSyncStatus('syncing', 'CRIANDO ESQUADRÃO...');
-          let emblemUrl = null;
-          if (emblemFile) {
-            emblemUrl = await window.SB.services.grupos.uploadEmblema(emblemFile);
+          // A TAG é opcional: o servidor gera uma a partir do nome se vier vazia
+          const created = await window.SB.services.grupos.criarGrupo({ nome: name, tag: tag || null, descricao: description, joinType });
+          // O emblema só pode ser enviado depois que o grupo existe (o caminho usa o ID do grupo)
+          if (emblemFile && created?.group?.id) {
+            try {
+              await window.SB.services.grupos.uploadEmblemaGrupo(created.group.id, emblemFile);
+            } catch (upErr) {
+              toast(`ESQUADRÃO CRIADO, MAS O EMBLEMA FALHOU: ${upErr.message}`, true);
+            }
           }
-          await window.SB.services.grupos.criarGrupo({ name, description, emblemUrl, joinType });
           setSyncStatus('online');
           toast(`ESQUADRÃO "${name.toUpperCase()}" FUNDADO COM SUCESSO!`);
           await renderGroupsSection();
@@ -1674,7 +1689,7 @@ async function renderGroupsSection() {
         const codigo = $('#groupInviteCodeInput').value.trim();
         if (!codigo) return;
         try {
-          await window.SB.services.grupos.entrarGrupo({ codigo });
+          await window.SB.services.grupos.entrarGrupo(codigo);
           toast('VOCÊ ENTROU NO ESQUADRÃO!');
           await renderGroupsSection();
         } catch (err) {
@@ -1685,7 +1700,7 @@ async function renderGroupsSection() {
       wrap.querySelectorAll('[data-join-group-id]').forEach(btn => {
         btn.onclick = async () => {
           try {
-            await window.SB.services.grupos.entrarGrupo({ groupId: btn.dataset.joinGroupId });
+            await window.SB.services.grupos.entrarGrupo(btn.dataset.joinGroupId);
             toast('VOCÊ ENTROU NO ESQUADRÃO!');
             await renderGroupsSection();
           } catch (err) {
@@ -1697,7 +1712,7 @@ async function renderGroupsSection() {
     }
 
     // Usuário pertence a um Esquadrão
-    const { group, myRole, members, goals } = myGroupData;
+    const { group, myRole, members, goals, conversationId: groupConversationId } = myGroupData;
     const isLeader = myRole === 'leader';
     const isOfficerOrLeader = myRole === 'leader' || myRole === 'officer';
 
@@ -1707,15 +1722,15 @@ async function renderGroupsSection() {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
             <div>
               <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--lime)">
-                🛡️ ${escapeHTML(group.name)}
+                🛡️ [${escapeHTML(group.tag || '')}] ${escapeHTML(group.nome)}
               </div>
-              <div style="font-size:12px;color:var(--mint);text-transform:none">${escapeHTML(group.description || '')}</div>
+              <div style="font-size:12px;color:var(--mint);text-transform:none">${escapeHTML(group.descricao || '')}</div>
               <div style="font-size:11px;margin-top:6px;color:var(--cyan)">
-                CÓDIGO DE CONVITE: <b>${escapeHTML(group.invite_code)}</b> • SEU CARGO: <b>${myRole.toUpperCase()}</b>
+                CÓDIGO DE CONVITE: <b>${escapeHTML(group.codigo || '')}</b> • SEU CARGO: <b>${myRole.toUpperCase()}</b>
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${group.conversation_id ? `<button type="button" class="small-btn" id="openGroupChatBtn">💬 CHAT DO CLÃ</button>` : ''}
+              ${groupConversationId ? `<button type="button" class="small-btn" id="openGroupChatBtn">💬 CHAT DO CLÃ</button>` : ''}
               <button type="button" class="small-btn" id="leaveGroupBtn" style="border-color:#FF5A5A;color:#FF8080">🚪 SAIR</button>
             </div>
           </div>
@@ -1723,12 +1738,12 @@ async function renderGroupsSection() {
           <div class="panel-title">METAS SEMANAIS COLETIVAS (ATUALIZADAS VIA TRIGGER)</div>
           <div class="social-list">
             ${goals.length ? goals.map(gl => {
-              const pct = Math.min(100, Math.floor((gl.current_value / Math.max(1, gl.target_value)) * 100));
+              const pct = Math.min(100, Math.floor((gl.progresso / Math.max(1, gl.meta)) * 100));
               return `
                 <div class="social-item" style="flex-direction:column;align-items:stretch">
                   <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700">
-                    <span>${gl.completed ? '✓ ' : '🎯 '}${escapeHTML(gl.title)}</span>
-                    <span style="color:var(--lime)">${gl.current_value} / ${gl.target_value} (${pct}%) • 🪙 +${gl.reward_coins}</span>
+                    <span>${gl.concluida ? '✓ ' : '🎯 '}${escapeHTML(gl.titulo || '')}</span>
+                    <span style="color:var(--lime)">${gl.progresso} / ${gl.meta} (${pct}%) • 🪙 +${gl.recompensa_moedas}</span>
                   </div>
                   <div class="group-goal-bar"><div class="group-goal-fill" style="width:${pct}%"></div></div>
                 </div>`;
@@ -1764,15 +1779,15 @@ async function renderGroupsSection() {
     `;
 
     $('#openGroupChatBtn')?.addEventListener('click', async () => {
-      activeConversationId = group.conversation_id;
-      activeConversationTitle = `🛡️ ${group.name}`;
+      activeConversationId = groupConversationId;
+      activeConversationTitle = `🛡️ ESQUADRÃO [${group.tag || ''}]`;
       await switchSocialSubSection('chat');
     });
 
     $('#leaveGroupBtn')?.addEventListener('click', async () => {
       if (!confirm('Deseja sair do esquadrão? (Se você for o líder, a liderança será transferida automaticamente).')) return;
       try {
-        await window.SB.services.grupos.sairGrupo(group.id);
+        await window.SB.services.grupos.sairDoGrupo();
         toast('VOCÊ SAIU DO ESQUADRÃO.');
         await renderGroupsSection();
       } catch (err) {
@@ -1783,7 +1798,7 @@ async function renderGroupsSection() {
     wrap.querySelectorAll('[data-promote-member]').forEach(btn => {
       btn.onclick = async () => {
         try {
-          await window.SB.services.grupos.promoverMembro(group.id, btn.dataset.promoteMember, btn.dataset.role);
+          await window.SB.services.grupos.promoverMembro(btn.dataset.promoteMember, btn.dataset.role);
           toast('CARGO ATUALIZADO!');
           await renderGroupsSection();
         } catch (err) {
@@ -1796,7 +1811,7 @@ async function renderGroupsSection() {
       btn.onclick = async () => {
         if (!confirm('Expulsar este agente do esquadrão?')) return;
         try {
-          await window.SB.services.grupos.expulsarMembro(group.id, btn.dataset.kickMember);
+          await window.SB.services.grupos.expulsarMembro(btn.dataset.kickMember);
           toast('AGENTE EXPULSO DO ESQUADRÃO.');
           await renderGroupsSection();
         } catch (err) {
@@ -1816,17 +1831,29 @@ function isOceanLeaderCanKick(isOfficerOrLeader, myRole, targetRole, isMe) {
 }
 
 /* --------------------- 4. SALA COOPERATIVA MULTIPLAYER --------------------- */
+/** Resumo da sala ativa no formato usado pela interface do lobby */
+function getCoopRoomInfo() {
+  const mp = window.SB?.services?.multiplayer;
+  const room = mp?.obterSalaAtiva?.() || null;
+  return {
+    roomId: room?.id || null,
+    code: room?.code || '',
+    seed: room?.seed,
+    isHost: Boolean(mp?.souHost?.())
+  };
+}
+
 async function renderCoopLobbyUI() {
   const box = $('#coopLobbyContent');
   if (!box || !window.SB?.services?.multiplayer) return;
-  const active = window.SB.services.multiplayer.getActiveRoomInfo();
+  const active = getCoopRoomInfo();
   if (!active.roomId) {
     box.innerHTML = `<div class="empty">NENHUMA SALA ATIVA NO MOMENTO.<br>CRIE UMA SALA OU DIGITE O CÓDIGO DE UM ALIADO.</div>`;
     return;
   }
 
   try {
-    const players = await window.SB.services.multiplayer.listarJogadoresSala(active.roomId);
+    const { players } = await window.SB.services.multiplayer.sincronizarParticipantesBanco(active.roomId);
     box.innerHTML = `
       <div style="text-align:left">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -1840,7 +1867,7 @@ async function renderCoopLobbyUI() {
         <div class="social-list" style="margin-bottom:12px">
           ${players.map(p => `
             <div class="social-item">
-              <span>🎮 <b>@${escapeHTML(p.profile?.username || p.character_snapshot?.nome || 'agente')}</b> (NV.${p.profile?.level || 1})</span>
+              <span>🎮 <b>@${escapeHTML(p.character_snapshot?.username || p.character_snapshot?.nome || 'agente')}</b> (NV.${p.character_snapshot?.level || 1})</span>
               <span style="color:var(--lime);font-size:11px">● PRONTO</span>
             </div>
           `).join('')}
@@ -1857,7 +1884,7 @@ async function renderCoopLobbyUI() {
 
     $('#hostStartCoopBtn')?.addEventListener('click', async () => {
       try {
-        const started = await window.SB.services.multiplayer.iniciarSalaHost(active.roomId);
+        const started = await window.SB.services.multiplayer.iniciarPartidaSala();
         if (typeof window.startCoopCityMission === 'function') {
           window.startCoopCityMission({ roomId: active.roomId, seed: started.seed, isHost: true });
         }
@@ -1876,41 +1903,39 @@ async function renderCoopLobbyUI() {
   }
 }
 
-async function connectCoopRoomEvents(roomId) {
-  await window.SB.services.multiplayer.conectarCanalSala(roomId, {
-    onPlayerJoinLeave: () => renderCoopLobbyUI(),
-    onRoomStarted: payload => {
-      const info = window.SB.services.multiplayer.getActiveRoomInfo();
+/**
+ * Callbacks do canal `room:{id}` no formato do serviço de multiplayer.
+ * (A posição dos jogadores remotos é tratada dentro do próprio serviço.)
+ */
+function buildCoopListeners() {
+  return {
+    onLobbyUpdate: () => renderCoopLobbyUI(),
+    onMatchStart: payload => {
+      const info = getCoopRoomInfo();
       toast('⚡ OPERAÇÃO CO-OP INICIADA! ENTRANDO NA CIDADE...');
       if (typeof window.startCoopCityMission === 'function') {
         window.startCoopCityMission({
-          roomId,
-          seed: payload?.seed || info.seed,
+          roomId: info.roomId || payload?.room?.id,
+          seed: payload?.seed ?? info.seed,
           isHost: info.isHost
         });
       }
     },
-    onRemotePlayerState: payload => {
-      if (typeof window.updateRemoteCoopPlayer === 'function') {
-        window.updateRemoteCoopPlayer(payload);
-      }
-    },
-    onHostWorldState: payload => {
+    onWorldState: payload => {
       if (typeof window.applyCoopWorldStateFromHost === 'function') {
         window.applyCoopWorldStateFromHost(payload);
       }
     },
-    onClientAction: payload => {
+    onHostEnemyDamage: payload => {
       if (typeof window.handleCoopClientHitOnHost === 'function') {
         window.handleCoopClientHitOnHost(payload);
       }
     },
-    onReconnecting: st => {
-      if (st === 'reconnecting') setSyncStatus('syncing', 'RECONECTANDO SALA CO-OP...');
-      else if (st === 'connected') setSyncStatus('online');
-      else setSyncStatus('error', 'SALA DESCONECTADA');
+    onConnectionStatus: st => {
+      if (st === 'SUBSCRIBED') setSyncStatus('online');
+      else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') setSyncStatus('syncing', 'RECONECTANDO SALA CO-OP...');
     }
-  });
+  };
 }
 
 /* --------------------- 5. NOTIFICAÇÕES EM TEMPO REAL --------------------- */
@@ -1918,19 +1943,20 @@ async function renderNotificationsSection() {
   const listEl = $('#notificationsList');
   if (!listEl || !window.SB?.services?.amigos) return;
   try {
-    const items = await window.SB.services.amigos.listarNotificacoes(40);
+    if (!window.currentUser) return;
+    const items = await window.SB.services.amigos.listarNotificacoes(window.currentUser.id, 40);
     if (!items.length) {
       listEl.innerHTML = `<div class="empty">NENHUMA NOTIFICAÇÃO REGISTRADA.</div>`;
       return;
     }
     listEl.innerHTML = items.map(n => `
-      <div class="social-item ${!n.read_at ? 'unread' : ''}">
+      <div class="social-item ${!n.lida ? 'unread' : ''}">
         <div>
-          <div style="font-weight:700;color:var(--lime)">🔔 ${escapeHTML(n.title)}</div>
-          <div style="font-size:12px;text-transform:none;opacity:.9">${escapeHTML(n.body || '')}</div>
+          <div style="font-weight:700;color:var(--lime)">🔔 ${escapeHTML(n.titulo || '')}</div>
+          <div style="font-size:12px;text-transform:none;opacity:.9">${escapeHTML(n.mensagem || '')}</div>
           <div style="font-size:10px;color:var(--mint);margin-top:3px">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
         </div>
-        ${!n.read_at ? `<span class="badge facil">NOVO</span>` : ''}
+        ${!n.lida ? `<span class="badge facil">NOVO</span>` : ''}
       </div>
     `).join('');
   } catch (err) {
@@ -1949,11 +1975,17 @@ async function renderRankingTab() {
   listEl.innerHTML = `<div class="empty">CONSULTANDO CLASSIFICAÇÃO OFICIAL...</div>`;
 
   try {
-    const [rows, myPos, season] = await Promise.all([
-      window.SB.services.ranking.obterRanking(activeRankCat, activeRankPeriod, 50, 0),
-      window.SB.services.ranking.minhaPosicao(activeRankCat, activeRankPeriod),
-      window.SB.services.ranking.obterTemporadaAtiva(activeRankPeriod === 'monthly' ? 'monthly' : 'weekly')
-    ]);
+    const rankingSvc = window.SB.services.ranking;
+    const result = await rankingSvc.carregarRankingCompleto({
+      categoria: activeRankCat,
+      periodo: activeRankPeriod,
+      limite: 50,
+      offset: 0
+    });
+    const rows = result.items || [];
+    const myPos = result.minhaPosicao || null;
+    const season = activeRankPeriod === 'all' ? null : result.season;
+    const unit = (rankingSvc.CATEGORIES || []).find(c => c.id === activeRankCat)?.unit || '';
 
     if (seasonEl) {
       if (season) {
@@ -1967,10 +1999,10 @@ async function renderRankingTab() {
     }
 
     if (myPosEl) {
-      if (myPos && myPos.rank_pos) {
+      if (myPos && myPos.posicao) {
         myPosEl.innerHTML = `
-          <span>SUA POSIÇÃO ATUAL: <b>#${myPos.rank_pos}</b> DE ${myPos.total_entries}</span>
-          <span>VALOR: <b>${myPos.metric_value}</b> • TOP ${myPos.percentile || 100}%</span>`;
+          <span>SUA POSIÇÃO ATUAL: <b>#${myPos.posicao}</b></span>
+          <span>VALOR: <b>${myPos.valor ?? 0}</b> ${escapeHTML(unit)}</span>`;
       } else {
         myPosEl.innerHTML = `<span>CONCLUA MISSÕES OU PARTIDAS PARA ENTRAR NESTE RANKING!</span>`;
       }
@@ -1982,23 +2014,25 @@ async function renderRankingTab() {
     }
 
     listEl.innerHTML = rows.map(r => {
-      const pos = Number(r.rank_pos);
+      const pos = Number(r.posicao);
       const topCls = pos === 1 ? 'top-1' : pos === 2 ? 'top-2' : pos === 3 ? 'top-3' : '';
-      const isMe = r.entity_id === window.currentUser?.id;
+      const isGroups = activeRankCat === 'groups';
+      const isMe = !isGroups && r.user_id === window.currentUser?.id;
+      const displayName = isGroups ? `[${r.tag || ''}] ${r.nome || 'esquadrão'}` : (r.username || 'agente');
       const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `#${pos}`;
       return `
         <div class="rank-row ${topCls} ${isMe ? 'me' : ''}">
           <div class="rank-pos">${medal}</div>
           <div>
             <div style="font-weight:700;font-size:14px">
-              ${activeRankCat === 'groups' ? '🛡️ ' : '@'}${escapeHTML(r.display_name || 'agente')}
-              ${r.moldura ? `<span class="badge epica" title="Moldura de Temporada">★ ${escapeHTML(r.moldura)}</span>` : ''}
+              ${isGroups ? '🛡️ ' : '@'}${escapeHTML(displayName)}
+              ${r.moldura_equipada ? `<span class="badge epica" title="Moldura de Temporada">★ ${escapeHTML(r.moldura_equipada)}</span>` : ''}
             </div>
             <div style="font-size:11px;color:var(--mint)">
-              ${activeRankCat === 'groups' ? `Membros: ${r.level || 1}/30` : `Nível ${r.level || 1}`}
+              ${isGroups ? `Membros: ${r.total_membros || 1}/${r.max_members || 30}` : `Nível ${r.level || 1}${r.group_tag ? ` • [${escapeHTML(r.group_tag)}]` : ''}`}
             </div>
           </div>
-          <div class="rank-val">${r.metric_value} <small style="font-size:10px;opacity:.8">${escapeHTML(r.extra_label || '')}</small></div>
+          <div class="rank-val">${r.valor ?? 0} <small style="font-size:10px;opacity:.8">${escapeHTML(unit)}</small></div>
         </div>`;
     }).join('');
   } catch (err) {
@@ -2019,9 +2053,10 @@ function bindSocialAndRankingEvents() {
     const username = input.value.trim();
     if (!username) return;
     try {
-      const res = await window.SB.services.amigos.enviarPedido(username);
+      const res = await window.SB.services.amigos.enviarPedidoAmizade(username.replace(/^@/, ''));
       input.value = '';
-      toast(res.status === 'accepted' ? 'AMIZADE CONECTADA!' : `PEDIDO ENVIADO PARA @${res.target_username.toUpperCase()}!`);
+      const alvo = (res?.target_username || username.replace(/^@/, '')).toUpperCase();
+      toast(res?.friendship?.status === 'accepted' ? 'AMIZADE CONECTADA!' : `PEDIDO ENVIADO PARA @${alvo}!`);
       await renderFriendsSection();
     } catch (err) {
       toast(err.message, true);
@@ -2077,7 +2112,7 @@ function bindSocialAndRankingEvents() {
     if (!loadedChatMessages.length) return;
     const oldest = loadedChatMessages[0]?.created_at;
     try {
-      const page = await window.SB.services.chat.carregarMensagens(activeConversationId, {
+      const page = await window.SB.services.chat.carregarMensagensPaginadas(activeConversationId, {
         limit: 30,
         beforeCreatedAt: oldest
       });
@@ -2091,8 +2126,8 @@ function bindSocialAndRankingEvents() {
 
   // Broadcast de "digitando..." (nunca gravado no banco)
   $('#chatMessageInput')?.addEventListener('input', () => {
-    if (window.SB?.services?.chat && state.username) {
-      window.SB.services.chat.emitirDigitando(state.username);
+    if (window.SB?.services?.chat && window.currentUser) {
+      window.SB.services.chat.emitirDigitando(window.currentUser.id, state.username || 'agente');
     }
   });
 
@@ -2130,9 +2165,9 @@ function bindSocialAndRankingEvents() {
     try {
       let attachmentPath = null;
       if (pendingChatAttachmentFile) {
-        attachmentPath = await window.SB.services.chat.uploadAnexoChat(activeConversationId, pendingChatAttachmentFile);
+        attachmentPath = await window.SB.services.chat.uploadAnexoChat(activeConversationId, window.currentUser.id, pendingChatAttachmentFile);
       }
-      const msg = await window.SB.services.chat.enviarMensagem(
+      const sent = await window.SB.services.chat.enviarMensagem(
         activeConversationId,
         content || '📷 [Imagem anexada]',
         attachmentPath
@@ -2142,6 +2177,8 @@ function bindSocialAndRankingEvents() {
       $('#chatAttachmentInput').value = '';
       $('#chatAttachPreview')?.classList.add('hidden');
 
+      // A RPC `enviar_mensagem` devolve { message, sender }
+      const msg = sent?.message || null;
       if (msg && !loadedChatMessages.some(m => m.id === msg.id)) {
         loadedChatMessages.push({
           ...msg,
@@ -2163,7 +2200,7 @@ function bindSocialAndRankingEvents() {
       const reason = prompt('Informe o motivo da denúncia (ex.: spam, ofensa, link suspeito):');
       if (!reason) return;
       try {
-        await window.SB.services.chat.denunciarMensagem(repBtn.dataset.reportMsg, reason);
+        await window.SB.services.chat.denunciarMensagem({ messageId: repBtn.dataset.reportMsg, reason });
         toast('DENÚNCIA ENVIADA PARA A MODERAÇÃO.');
       } catch (err) {
         toast(err.message, true);
@@ -2171,14 +2208,13 @@ function bindSocialAndRankingEvents() {
     }
     const attBtn = e.target.closest('[data-open-chat-att]');
     if (attBtn) {
-      try {
-        const signedUrl = await window.SB.services.chat.gerarUrlAnexo(attBtn.dataset.openChatAtt);
-        if (signedUrl) {
-          $('#lightboxImg').src = signedUrl;
-          openModal('lightbox');
-        }
-      } catch (err) {
-        toast(err.message, true);
+      // A URL assinada (válida por 1h) já vem pronta na hidratação das mensagens
+      const signedUrl = attBtn.dataset.openChatAtt;
+      if (signedUrl) {
+        $('#lightboxImg').src = signedUrl;
+        openModal('lightbox');
+      } else {
+        toast('ANEXO INDISPONÍVEL OU EXPIRADO. RECARREGUE A CONVERSA.', true);
       }
     }
   });
@@ -2186,9 +2222,9 @@ function bindSocialAndRankingEvents() {
   // Sala Co-op: Criar ou Entrar
   $('#createCoopRoomBtn')?.addEventListener('click', async () => {
     try {
-      const res = await window.SB.services.multiplayer.criarSala(4, state.profile || {});
-      toast(`SALA CO-OP CRIADA! CÓDIGO: ${res.code}`);
-      await connectCoopRoomEvents(res.room_id);
+      // criarSala já conecta ao canal Realtime da sala com os callbacks informados
+      const res = await window.SB.services.multiplayer.criarSala(4, buildCoopListeners());
+      toast(`SALA CO-OP CRIADA! CÓDIGO: ${res?.room?.code || ''}`);
       await renderCoopLobbyUI();
     } catch (err) {
       toast(err.message, true);
@@ -2200,9 +2236,8 @@ function bindSocialAndRankingEvents() {
     const code = $('#joinRoomCodeInput').value.trim();
     if (!code) return;
     try {
-      const res = await window.SB.services.multiplayer.entrarSala(code, state.profile || {});
-      toast(`CONECTADO À SALA ${res.code}!`);
-      await connectCoopRoomEvents(res.room_id);
+      const res = await window.SB.services.multiplayer.entrarSala(code, buildCoopListeners());
+      toast(`CONECTADO À SALA ${res?.room?.code || code.toUpperCase()}!`);
       await renderCoopLobbyUI();
     } catch (err) {
       toast(err.message, true);
@@ -2212,7 +2247,8 @@ function bindSocialAndRankingEvents() {
   // Marcar notificações como lidas
   $('#markAllNotifsReadBtn')?.addEventListener('click', async () => {
     try {
-      await window.SB.services.amigos.marcarNotificacoesLidas();
+      if (!window.currentUser) return;
+      await window.SB.services.amigos.marcarNotificacoesComoLidas(window.currentUser.id);
       await renderNotificationsSection();
       await refreshUnreadBadges();
       toast('TODAS AS NOTIFICAÇÕES FORAM MARCADAS COMO LIDAS.');

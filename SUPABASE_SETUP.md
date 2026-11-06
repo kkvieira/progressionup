@@ -72,11 +72,11 @@ psql "$SUPABASE_DB_URL" -f supabase/tests/rls.sql
    - **Edge Function**: selecione `moderar-mensagem` (`POST`)
    - **HTTP Headers**: adicione `x-webhook-secret: um-segredo-forte-aqui` (mesmo valor definido no `supabase secrets set`).
 
-### D. Ajustar URLs e Provedores de Autenticação (E-mail, Apple, Google, GitHub, Discord)
+### D. Ajustar URLs e Provedores de Autenticação (E-mail, Google, GitHub, Discord)
 1. Acesse **Authentication** → **URL Configuration**:
    - **Site URL**: `http://localhost:5500` (ou seu domínio de produção).
    - **Redirect URLs**: adicione `http://localhost:5500/**`, `http://127.0.0.1:5500/**` e sua URL de produção.
-2. Em **Authentication** → **Providers**, mantenha habilitados **Email**, **Google**, **Apple**, **GitHub** e **Discord** usando a Callback URL do seu projeto (`https://<PROJECT_REF>.supabase.co/auth/v1/callback`).
+2. Em **Authentication** → **Providers**, mantenha habilitados **Email**, **Google**, **GitHub** e **Discord** usando a Callback URL do seu projeto (`https://<PROJECT_REF>.supabase.co/auth/v1/callback`).
 
 ---
 

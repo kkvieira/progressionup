@@ -275,7 +275,7 @@ const authApi = {
 
   /**
    * Login Social via OAuth 2.0 / OpenID Connect com PKCE.
-   * Suporta: 'google', 'discord', 'github', 'apple' e futuros provedores.
+   * Suporta: 'google', 'discord', 'github' e futuros provedores.
    */
   async signInWithOAuth(provider) {
     const sb = requireClient();
