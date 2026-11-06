@@ -426,8 +426,9 @@
 
       <div class="char-grid">
         <div class="char-left">
-          <div class="char-stage">
-            <canvas class="sprite big idle" id="charPreview"></canvas>
+          <div class="char-stage wr-stage">
+            <div class="wr-spin" id="charSpin"><canvas class="sprite big idle" id="charPreview"></canvas></div>
+            <div class="wr-disc"></div>
           </div>
           <div class="field">
             <label for="charName">NOME DO PERSONAGEM (MÁX. 16)</label>
@@ -440,7 +441,7 @@
           <div class="class-card" id="classCard"></div>
         </div>
 
-        <div class="char-options" id="charOptions"></div>
+        <div class="char-options wardrobe" id="charOptions"></div>
       </div>
 
       <div class="btn-row char-actions">

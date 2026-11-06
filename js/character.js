@@ -522,28 +522,90 @@ const EDITOR_OPTIONS = [
     set: (d, i) => { d.classe = CLASSES[i].id; d.arma = CLASSES[i].weapon; } }
 ];
 
-/** Monta a estrutura do editor uma vez */
+/* ---------- Armário (wardrobe): categorias + carrossel giratório ---------- */
+const WARDROBE_ICONS = { genero: '⚥', pele: '✋', cabelo: '💇', corCabelo: '🧪', roupa: '👕', corRoupa: '🎨', classe: '⚔️' };
+let wardrobeCat = EDITOR_OPTIONS[0].key;
+
+/** Espaçamento horizontal entre os itens do carrossel, proporcional à largura */
+function wardrobeSpacing(car) {
+  return Math.max(54, Math.min(112, (car?.clientWidth || 320) * 0.2));
+}
+
+/** Monta a estrutura do armário uma vez */
 function buildEditor() {
-  $('#charOptions').innerHTML = EDITOR_OPTIONS.map(o => `
-    <div class="opt-row" data-row="${o.key}">
-      <div class="opt-label">${o.label}</div>
-      <div class="opt-ctrl">
-        <button type="button" class="arrow" data-arrow="${o.key}" data-dir="-1" aria-label="Anterior">◀</button>
-        <div class="opt-value">
-          ${o.thumb === 'sprite' ? '<canvas class="sprite"></canvas>' : o.thumb === 'swatch' ? '<span class="sw"></span>' : '<span class="ico"></span>'}
-          <span class="opt-name"></span><small class="opt-count"></small>
-        </div>
-        <button type="button" class="arrow" data-arrow="${o.key}" data-dir="1" aria-label="Próximo">▶</button>
+  $('#charOptions').innerHTML = `
+    <div class="wr-cats" role="tablist" aria-label="Categorias do armário">
+      ${EDITOR_OPTIONS.map(o => `
+        <button type="button" class="wr-cat" role="tab" data-cat="${o.key}">
+          <span class="wr-cat-ico">${WARDROBE_ICONS[o.key] || '•'}</span>
+          <span class="wr-cat-txt">${o.label}</span>
+        </button>`).join('')}
+    </div>
+    <div class="wr-closet">
+      <div class="wr-closet-head">
+        <span class="wr-closet-label" id="wrLabel"></span>
+        <span class="wr-count" id="wrCount"></span>
       </div>
-      <div class="opt-thumbs">
-        ${o.items.map((it, i) => o.thumb === 'sprite'
-          ? `<button type="button" class="thumb" data-pick="${o.key}" data-i="${i}" title="${escapeHTML(o.name(it, i))}"><canvas class="sprite"></canvas></button>`
-          : o.thumb === 'swatch'
-          ? `<button type="button" class="thumb swatch" data-pick="${o.key}" data-i="${i}" title="${escapeHTML(o.name(it, i))}" style="background:${o.color(it)}"></button>`
-          : `<button type="button" class="thumb icon" data-pick="${o.key}" data-i="${i}" title="${escapeHTML(o.name(it, i))}">${o.icon(it)}</button>`
-        ).join('')}
+      <div class="wr-carousel" id="wrCarousel">
+        <div class="wr-rail"></div>
+        <div class="wr-track" id="wrTrack"></div>
       </div>
-    </div>`).join('');
+      <div class="wr-ctrl">
+        <button type="button" class="arrow wr-arrow" data-dir="-1" aria-label="Anterior">◀</button>
+        <div class="wr-name" id="wrName"></div>
+        <button type="button" class="arrow wr-arrow" data-dir="1" aria-label="Próximo">▶</button>
+      </div>
+      <div class="wr-hint">ARRASTE PARA GIRAR • TOQUE PARA VESTIR</div>
+    </div>`;
+  renderWardrobeTrack();
+}
+
+/** (Re)cria os itens do carrossel da categoria ativa */
+function renderWardrobeTrack() {
+  const o = EDITOR_OPTIONS.find(x => x.key === wardrobeCat);
+  const track = $('#wrTrack');
+  if (!o || !track) return;
+  track.className = `wr-track type-${o.thumb}`;
+  track.innerHTML = o.items.map((it, i) => {
+    const title = escapeHTML(o.name(it, i));
+    const inner = o.thumb === 'sprite'
+      ? '<span class="wr-hanger"></span><canvas class="sprite"></canvas>'
+      : o.thumb === 'swatch'
+      ? `<span class="wr-hanger"></span><span class="wr-sw" style="background:${o.color(it)}"></span>`
+      : `<span class="wr-ico">${o.icon(it)}</span><small>${title}</small>`;
+    return `<button type="button" class="wr-item" data-i="${i}" title="${title}" aria-label="${title}">${inner}<span class="wr-lock">🔒</span></button>`;
+  }).join('');
+}
+
+/** Distância circular mais curta entre o item i e o selecionado */
+function wardrobeOffset(i, cur, n) {
+  let off = i - cur;
+  if (off > n / 2) off -= n;
+  if (off < -n / 2) off += n;
+  return off;
+}
+
+/** Posiciona os itens em arco 3D (estilo vitrine/armário giratório) */
+function layoutWardrobe() {
+  const o = EDITOR_OPTIONS.find(x => x.key === wardrobeCat);
+  const car = $('#wrCarousel');
+  if (!o || !car || !charDraft) return;
+  const n = o.items.length;
+  const cur = o.get(charDraft);
+  const sp = wardrobeSpacing(car);
+  car.querySelectorAll('.wr-item').forEach(el => {
+    const i = +el.dataset.i;
+    const off = wardrobeOffset(i, cur, n);
+    const abs = Math.abs(off);
+    const visible = abs <= 3;
+    el.style.transform = `translate(-50%, -50%) translateX(${off * sp}px) translateZ(${-abs * 70}px) rotateY(${off * -34}deg) scale(${Math.max(0.5, 1 - abs * 0.17)})`;
+    el.style.opacity = visible ? String(1 - abs * 0.24) : '0';
+    el.style.zIndex = String(10 - abs);
+    el.style.pointerEvents = visible ? 'auto' : 'none';
+    el.classList.toggle('sel', off === 0);
+    el.classList.toggle('locked', o.key === 'roupa' && !isOutfitUnlocked(o.items[i].id));
+    el.tabIndex = off === 0 ? 0 : -1;
+  });
 }
 
 function isOutfitUnlocked(id) {
@@ -552,31 +614,133 @@ function isOutfitUnlocked(id) {
   return !!(typeof state !== 'undefined' && state?.game?.unlockedOutfits?.includes(id));
 }
 
-/** Atualiza prévia, rótulos, miniaturas e cartão da classe */
+/** Gira o personagem no pedestal quando uma peça é trocada */
+function spinPreview(dir = 1) {
+  const sp = $('#charSpin');
+  if (!sp) return;
+  sp.classList.remove('spin-l', 'spin-r');
+  void sp.offsetWidth;
+  sp.classList.add(dir < 0 ? 'spin-l' : 'spin-r');
+}
+
+/** Atualiza prévia, categoria ativa, carrossel e cartão da classe */
 function refreshEditor() {
   const d = charDraft;
   drawSprite($('#charPreview'), d, { level: state.level });
 
-  EDITOR_OPTIONS.forEach(o => {
-    const row = document.querySelector(`[data-row="${o.key}"]`);
-    const i = o.get(d), it = o.items[i];
-    row.querySelector('.opt-name').textContent = o.name(it, i);
-    row.querySelector('.opt-count').textContent = `${i + 1}/${o.items.length}`;
-    if (o.thumb === 'sprite') drawSprite(row.querySelector('.opt-value canvas'), d, { noWeapon: o.noWeapon });
-    if (o.thumb === 'swatch') row.querySelector('.sw').style.background = o.color(it);
-    if (o.thumb === 'icon') row.querySelector('.ico').textContent = o.icon(it);
-    row.querySelectorAll('.thumb').forEach(t => {
-      const ti = +t.dataset.i;
-      const locked = o.key === 'roupa' && !isOutfitUnlocked(o.items[ti].id);
-      t.classList.toggle('sel', ti === i);
-      t.classList.toggle('locked', locked);
-      if (o.thumb === 'sprite') {
-        const v = { ...d }; o.set(v, ti);
-        drawSprite(t.querySelector('canvas'), v, { noWeapon: o.noWeapon });
-      }
-    });
+  const o = EDITOR_OPTIONS.find(x => x.key === wardrobeCat);
+  document.querySelectorAll('.wr-cat').forEach(b => {
+    const on = b.dataset.cat === wardrobeCat;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  const i = o.get(d), it = o.items[i];
+  $('#wrLabel').textContent = o.label;
+  $('#wrCount').textContent = `${i + 1}/${o.items.length}`;
+  $('#wrName').textContent = o.name(it, i);
+
+  if (o.thumb === 'sprite') {
+    document.querySelectorAll('#wrTrack .wr-item').forEach(el => {
+      const v = { ...d }; o.set(v, +el.dataset.i);
+      drawSprite(el.querySelector('canvas'), v, { noWeapon: o.noWeapon });
+    });
+  }
+  layoutWardrobe();
   renderClassCard($('#classCard'), d.classe, tierForLevel(state.level));
+}
+
+function selectWardrobeCat(key) {
+  if (!EDITOR_OPTIONS.some(o => o.key === key)) return;
+  wardrobeCat = key;
+  renderWardrobeTrack();
+  refreshEditor();
+  const btn = document.querySelector(`.wr-cat[data-cat="${key}"]`);
+  const bar = btn?.parentElement;
+  if (btn && bar && bar.scrollWidth > bar.clientWidth) {
+    bar.scrollTo({ left: btn.offsetLeft - (bar.clientWidth - btn.offsetWidth) / 2, behavior: 'smooth' });
+  }
+}
+
+/** Eventos do armário: categorias, setas, toque nos itens, arrastar, roda do mouse e teclado */
+function bindWardrobe() {
+  const root = $('#charOptions');
+  const step = dir => {
+    const o = EDITOR_OPTIONS.find(x => x.key === wardrobeCat);
+    changeOption(o.key, o.get(charDraft) + dir, dir);
+  };
+
+  let drag = null;
+  let suppressClick = false;
+
+  root.addEventListener('click', e => {
+    const cat = e.target.closest('[data-cat]');
+    if (cat) { selectWardrobeCat(cat.dataset.cat); return; }
+    const arr = e.target.closest('.wr-arrow');
+    if (arr) { step(+arr.dataset.dir); return; }
+    const item = e.target.closest('.wr-item');
+    if (item) {
+      if (suppressClick) { suppressClick = false; return; }
+      const o = EDITOR_OPTIONS.find(x => x.key === wardrobeCat);
+      const cur = o.get(charDraft);
+      const target = +item.dataset.i;
+      if (target === cur) return;
+      const dir = Math.sign(wardrobeOffset(target, cur, o.items.length)) || 1;
+      changeOption(o.key, target, 0);
+      if (o.get(charDraft) === target) spinPreview(dir);
+    }
+  });
+
+  const car = $('#wrCarousel');
+  car.addEventListener('pointerdown', e => {
+    drag = { x: e.clientX, id: e.pointerId, moved: false };
+  });
+  car.addEventListener('pointermove', e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    if (Math.abs(e.clientX - drag.x) > 8) drag.moved = true;
+  });
+  const endDrag = e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const dx = e.clientX - drag.x;
+    const moved = drag.moved;
+    drag = null;
+    if (!moved || Math.abs(dx) < 28) return;
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 60);
+    const steps = Math.max(1, Math.min(3, Math.round(Math.abs(dx) / wardrobeSpacing(car))));
+    step(dx < 0 ? steps : -steps);
+  };
+  car.addEventListener('pointerup', endDrag);
+  car.addEventListener('pointercancel', () => { drag = null; });
+
+  // Roda do mouse / trackpad gira o carrossel no computador
+  let wheelLock = 0;
+  car.addEventListener('wheel', e => {
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(d) < 4) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - wheelLock < 180) return;
+    wheelLock = now;
+    step(d > 0 ? 1 : -1);
+  }, { passive: false });
+
+  // Teclado: ← → trocam a peça, ↑ ↓ trocam a categoria
+  document.addEventListener('keydown', e => {
+    if (!$('#charScreen').classList.contains('open')) return;
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const idx = EDITOR_OPTIONS.findIndex(o => o.key === wardrobeCat);
+      const n = EDITOR_OPTIONS.length;
+      selectWardrobeCat(EDITOR_OPTIONS[(idx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n].key);
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if ($('#charScreen').classList.contains('open')) layoutWardrobe();
+  });
 }
 
 /** Cartão com ícone, descrição, arma e bônus da classe */
@@ -601,9 +765,13 @@ function openCharEditor(mode) {
     : 'BEM-VINDO AO SISTEMA. CRIE SEU AVATAR PARA INICIAR.';
   $('#charConfirm').textContent = mode === 'edit' ? 'SALVAR ALTERAÇÕES' : 'INICIAR JORNADA';
   $('#charCancel').classList.toggle('hidden', mode !== 'edit');
-  refreshEditor();
   $('#charScreen').classList.add('open');
   document.body.classList.add('no-scroll');
+  wardrobeCat = EDITOR_OPTIONS[0].key;
+  renderWardrobeTrack();
+  refreshEditor();
+  // Recalcula o arco depois que o layout da tela aberta estiver pronto
+  requestAnimationFrame(layoutWardrobe);
 }
 function closeCharEditor() {
   $('#charScreen').classList.remove('open');
@@ -625,7 +793,9 @@ function changeOption(key, i, dir = 1) {
       return;
     }
   }
+  const before = o.get(charDraft);
   o.set(charDraft, idx);
+  if (dir !== 0 && idx !== before) spinPreview(dir);
   refreshEditor();
 }
 
@@ -638,12 +808,14 @@ function randomizeChar() {
       o.set(charDraft, Math.floor(Math.random() * o.items.length));
     }
   });
+  spinPreview(1);
   refreshEditor();
 }
 function resetChar() {
   const nome = $('#charName').value;
   const keepClass = charMode === 'edit' ? { classe: state.profile.classe, arma: state.profile.arma } : {};
   charDraft = { ...DEFAULT_PROFILE(), ...keepClass, nome };
+  spinPreview(-1);
   refreshEditor();
 }
 
@@ -754,12 +926,7 @@ function initCharacter() {
 
   buildEditor();
 
-  $('#charOptions').addEventListener('click', e => {
-    const a = e.target.closest('[data-arrow]');
-    if (a) { const o = EDITOR_OPTIONS.find(x => x.key === a.dataset.arrow); changeOption(o.key, o.get(charDraft) + (+a.dataset.dir), +a.dataset.dir); return; }
-    const t = e.target.closest('[data-pick]');
-    if (t) changeOption(t.dataset.pick, +t.dataset.i, 0);
-  });
+  bindWardrobe();
   $('#charName').addEventListener('input', e => { charDraft.nome = e.target.value; });
   $('#charRandom').addEventListener('click', randomizeChar);
   $('#charReset').addEventListener('click', resetChar);
