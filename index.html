@@ -2,9 +2,18 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sistema de Missões</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
+<!-- PWA: aplicativo instalável -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B1624">
+<meta name="description" content="Transforme suas tarefas diárias em missões, ganhe XP, evolua seu agente e jogue com amigos.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Missões">
+<link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -67,6 +76,8 @@
         </button>
       </div>
 
+      <button type="button" class="pwa-install-btn hidden" data-pwa-install>📲 INSTALAR APLICATIVO</button>
+
       <div class="or-sep" id="authOrSep">— OU E-MAIL E SENHA —</div>
 
       <!-- Formulário E-mail / Senha / Recuperação -->
@@ -119,6 +130,7 @@
     </div>
     <div class="level-num" id="levelNum" title="Nível atual">1<span class="level-label">NÍVEL</span></div>
     <div class="topbar-actions">
+      <button type="button" class="hud-top-btn hidden" data-pwa-install title="Instalar como aplicativo">📲 APP</button>
       <button type="button" class="hud-top-btn" id="accountSettingsBtn" title="Configurações da Conta">⚙ CONTA</button>
       <button type="button" class="hud-top-btn danger" id="logoutBtn" title="Encerrar Sessão">⏻ SAIR</button>
     </div>
@@ -596,6 +608,23 @@
 
 <div class="toasts" id="toasts"></div>
 
+<!-- ============ MODAL: INSTALAR NO IPHONE / IPAD ============ -->
+<div class="modal" id="pwaIosModal">
+  <div class="modal-box hud-glow">
+    <div class="hud-border"><div class="hud-inner">
+      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title">📲 INSTALAR NO IPHONE</div>
+      <div class="modal-sub">NO SAFARI, SIGA OS PASSOS ABAIXO:</div>
+      <ol class="pwa-steps">
+        <li>TOQUE NO BOTÃO <b>COMPARTILHAR</b> <span class="pwa-ico">⬆️</span> NA BARRA DO SAFARI</li>
+        <li>ROLE E ESCOLHA <b>"ADICIONAR À TELA DE INÍCIO"</b> <span class="pwa-ico">➕</span></li>
+        <li>TOQUE EM <b>ADICIONAR</b>. O ÍCONE DO SISTEMA DE MISSÕES VAI APARECER NA SUA TELA</li>
+      </ol>
+      <button type="button" class="btn green" data-close style="width:100%;margin-top:16px">ENTENDI</button>
+    </div></div>
+  </div>
+</div>
+
 <!-- ============ MODAL: CONFIGURAÇÕES DA CONTA (SUPABASE AUTH) ============ -->
 <div class="modal" id="accountModal">
   <div class="modal-box wide hud-glow">
@@ -679,5 +708,6 @@
 <script src="js/character.js"></script>
 <script src="js/game.js"></script>
 <script src="js/script.js"></script>
+<script src="js/pwa.js"></script>
 </body>
 </html>
