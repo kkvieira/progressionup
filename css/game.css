@@ -594,40 +594,202 @@
 .touch-controls{
   display:none;
   justify-content:space-between;
-  align-items:center;
+  align-items:flex-end;
   gap:10px;
   padding-top:4px;
+  touch-action:none;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
 }
-.tc-dpad, .tc-actions{
-  display:flex;
-  gap:8px;
+
+/* ---- Joystick analógico virtual ---- */
+.tc-joystick{
+  --joy:118px;
+  position:relative;
+  width:var(--joy);
+  height:var(--joy);
+  flex:0 0 auto;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(10,58,79,.55) 0 55%, rgba(5,20,30,.7) 56% 100%);
+  border:3px solid rgba(0,240,255,.55);
+  box-shadow:0 0 16px rgba(0,240,255,.25), inset 0 0 18px rgba(0,0,0,.7);
+  touch-action:none;
+}
+.tc-joy-ring{
+  position:absolute;
+  inset:14%;
+  border-radius:50%;
+  border:2px dashed rgba(0,240,255,.25);
+  pointer-events:none;
+}
+.tc-joy-ring::before, .tc-joy-ring::after{
+  content:'';
+  position:absolute;
+  left:50%; top:50%;
+  background:rgba(0,240,255,.18);
+  transform:translate(-50%,-50%);
+}
+.tc-joy-ring::before{ width:100%; height:2px; }
+.tc-joy-ring::after{ width:2px; height:100%; }
+.tc-stick{
+  position:absolute;
+  left:50%; top:50%;
+  width:46%;
+  height:46%;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 35% 30%, #5ff6ff, #0a7f96 60%, #053a48);
+  border:2px solid #bff;
+  box-shadow:0 4px 10px rgba(0,0,0,.6), 0 0 12px rgba(0,240,255,.5);
+  pointer-events:none;
+}
+.tc-joystick.active{ border-color:var(--lime); }
+.tc-joystick.active .tc-stick{ box-shadow:0 4px 10px rgba(0,0,0,.6), 0 0 18px rgba(124,255,58,.7); }
+
+/* ---- Botões de ação estilo console retrô ---- */
+.tc-actions{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto auto;
+  grid-template-areas:
+    ".     jump"
+    "atk   skill";
+  gap:6px 12px;
+  align-items:center;
 }
 .tc-btn{
-  width:54px;
-  height:48px;
-  background:rgba(10,58,79,.75);
-  border:2px solid var(--cyan);
+  --sz:64px;
+  --c1:#ff5a6e; --c2:#b0122a; --c3:#5a0612;
+  width:var(--sz);
+  height:var(--sz);
+  border-radius:50%;
+  border:3px solid rgba(0,0,0,.55);
+  background:radial-gradient(circle at 35% 30%, var(--c1), var(--c2) 62%, var(--c3));
   color:#fff;
   font-family:var(--font-title);
-  font-size:16px;
+  font-size:22px;
+  line-height:1;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
-  touch-action:manipulation;
+  gap:2px;
+  text-shadow:0 2px 0 rgba(0,0,0,.55);
+  box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.08), 0 8px 14px rgba(0,0,0,.45);
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
+  transition:transform .05s, box-shadow .05s;
+  cursor:pointer;
 }
+.tc-btn span{ pointer-events:none; }
 .tc-btn small{
-  font-size:8px;
-  color:var(--cyan);
+  font-size:7px;
+  letter-spacing:.08em;
+  color:rgba(255,255,255,.85);
+  pointer-events:none;
 }
-.tc-btn:active, .tc-btn.pressed{
-  background:var(--lime);
-  border-color:var(--lime);
-  color:var(--navy);
+.tc-btn.pressed{
+  transform:translateY(4px);
+  box-shadow:0 1px 0 rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.12), 0 0 16px var(--c1);
+  filter:brightness(1.2);
 }
-.tc-btn.tc-atk{ border-color:var(--lime); }
-.tc-btn.tc-skill{ border-color:var(--gold); }
+.tc-btn.tc-jump{ grid-area:jump; --c1:#8dff5a; --c2:#2f9e14; --c3:#123f06; }
+.tc-btn.tc-atk{ grid-area:atk; --c1:#ff5a6e; --c2:#b0122a; --c3:#5a0612; }
+.tc-btn.tc-skill{ grid-area:skill; --sz:50px; font-size:18px; --c1:#ffe27a; --c2:#c99400; --c3:#5c4300; }
+
+/* Botão de tela cheia: só aparece em dispositivos com toque */
+.gh-fs-btn{ display:none; }
+
+/* =====================================================================
+   MODO TOUCH (CELULAR / TABLET): TELA CHEIA + CONTROLES SOBRE O JOGO
+   ===================================================================== */
+.game-screen.touch-mode{
+  padding:0;
+  background:#02080c;
+  backdrop-filter:none;
+  touch-action:none;
+  overscroll-behavior:none;
+  height:100vh;
+  height:100dvh;
+}
+.game-screen.touch-mode .gh-fs-btn{ display:inline-flex; align-items:center; justify-content:center; }
+.game-screen.touch-mode .game-frame{
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  max-height:none;
+  --cut:none;
+  clip-path:none;
+  filter:none;      /* remove brilho animado (pesado no celular) */
+  animation:none;
+}
+.game-screen.touch-mode .hud-border{ padding:0; }
+.game-screen.touch-mode .hud-border,
+.game-screen.touch-mode .hud-inner{
+  height:100%;
+  clip-path:none;
+}
+.game-screen.touch-mode .game-inner{
+  position:relative;
+  height:100%;
+  padding:max(4px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  gap:4px;
+  background:#02080c;
+}
+.game-screen.touch-mode .canvas-stage{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  max-height:none;
+  aspect-ratio:auto;
+  border:none;
+  box-shadow:none;
+  background:#02080c;
+}
+.game-screen.touch-mode #gameCanvas{
+  object-fit:contain;
+  object-position:center;
+}
+.game-screen.touch-mode .kbd-hints{ display:none; }
+.game-screen.touch-mode .game-controls-bar{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  z-index:6;
+  pointer-events:none;
+  padding:0 max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+.game-screen.touch-mode .touch-controls{
+  display:flex;
+  padding:0;
+}
+.game-screen.touch-mode .tc-joystick,
+.game-screen.touch-mode .tc-actions{
+  pointer-events:auto;
+  opacity:.82;
+}
+
+/* Retrato: o jogo fica no topo e os controles no espaço livre abaixo */
+@media (orientation:portrait){
+  .game-screen.touch-mode #gameCanvas{ object-position:center top; }
+  .game-screen.touch-mode .canvas-stage{ place-items:start center; }
+  .game-screen.touch-mode .tc-joystick{ --joy:clamp(120px, 36vw, 160px); }
+  .game-screen.touch-mode .tc-btn{ --sz:clamp(62px, 18vw, 78px); }
+  .game-screen.touch-mode .tc-btn.tc-skill{ --sz:clamp(48px, 14vw, 60px); }
+  .game-screen.touch-mode .game-controls-bar{ padding-bottom:max(28px, env(safe-area-inset-bottom)); }
+}
+
+/* Paisagem: controles semitransparentes por cima das laterais do jogo */
+@media (orientation:landscape){
+  .game-screen.touch-mode .tc-joystick{ --joy:clamp(96px, 30vh, 130px); }
+  .game-screen.touch-mode .tc-btn{ --sz:clamp(52px, 17vh, 70px); }
+  .game-screen.touch-mode .tc-btn.tc-skill{ --sz:clamp(40px, 13vh, 54px); }
+  .game-screen.touch-mode .tc-joystick,
+  .game-screen.touch-mode .tc-actions{ opacity:.62; }
+}
 
 @media (pointer:coarse), (max-width:860px){
   .touch-controls{ display:flex; }
@@ -643,11 +805,6 @@
     z-index:85;
     overflow-y:auto;
     padding:16px;
-  }
-  .tc-btn{
-    -webkit-touch-callout:none;
-    user-select:none;
-    -webkit-user-select:none;
   }
 }
 
@@ -706,12 +863,6 @@
 
   /* Controles Touch mais confortáveis para os polegares */
   .touch-controls{ gap:6px; padding-top:6px; }
-  .tc-dpad, .tc-actions{ gap:6px; }
-  .tc-btn{
-    width:clamp(46px, 14vw, 58px);
-    height:50px;
-    font-size:15px;
-  }
   .go-inner{ padding:16px 14px; }
   .go-title{ font-size:18px; }
   .go-actions .btn{ width:100%; text-align:center; }
@@ -728,5 +879,4 @@
   .gh-hp-wrap{ width:130px; }
   .canvas-stage{ max-height:56dvh; }
   .touch-controls{ padding-top:2px; }
-  .tc-btn{ width:48px; height:38px; font-size:13px; }
 }

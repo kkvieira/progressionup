@@ -157,15 +157,29 @@ function getSupabaseConfig() {
 }
 
 let supabaseClient = null;
+let supabaseClientKey = '';
 let realtimeChannel = null;
 
+/**
+ * Retorna o cliente Supabase (singleton). Só cria um novo cliente se a
+ * configuração (URL/anon key) mudar. Criar vários clientes faz cada um
+ * tentar trocar o mesmo `?code=` do retorno OAuth (PKCE); a segunda troca
+ * falha e apaga a sessão recém-criada, devolvendo o usuário ao login.
+ */
 function initSupabaseClient() {
   const { url, anonKey, isConfigured } = getSupabaseConfig();
   if (!isConfigured || !window.supabase || typeof window.supabase.createClient !== 'function') {
     supabaseClient = null;
+    supabaseClientKey = '';
     return null;
   }
 
+  const key = url + '|' + anonKey;
+  if (supabaseClient && supabaseClientKey === key) {
+    return supabaseClient;
+  }
+
+  supabaseClientKey = key;
   supabaseClient = window.supabase.createClient(url, anonKey, {
     auth: {
       flowType: 'pkce',               // Fluxo OAuth 2.0 Authorization Code com PKCE

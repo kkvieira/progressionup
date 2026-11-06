@@ -2238,6 +2238,29 @@ function bindSocialAndRankingEvents() {
   });
 }
 
+/** Garante que o app seja carregado uma única vez por usuário (evita carga dupla listener + getSession) */
+let authLoadingUserId = null;
+async function ensureAuthenticatedApp(user) {
+  if (!user) return;
+  if (window.currentUser?.id === user.id || authLoadingUserId === user.id) return;
+  authLoadingUserId = user.id;
+  try {
+    cleanAuthParamsFromUrl();
+    await loadAuthenticatedApp(user);
+  } finally {
+    authLoadingUserId = null;
+  }
+}
+
+/** Remove ?code= / #access_token= da URL após o retorno OAuth para não reprocessar no reload */
+function cleanAuthParamsFromUrl() {
+  const sp = new URLSearchParams(window.location.search);
+  const hasHashToken = /access_token=|refresh_token=/.test(window.location.hash);
+  if (sp.has('code') || hasHashToken) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
 let authSubscription = null;
 function bindAuthStateListener() {
   if (authSubscription) {
@@ -2265,10 +2288,10 @@ function bindAuthStateListener() {
       return;
     }
     if (session?.user) {
-      if (!window.currentUser || window.currentUser.id !== session.user.id) {
-        loadAuthenticatedApp(session.user);
-      }
-    } else {
+      // Adia para fora do callback: chamadas ao Supabase dentro do
+      // onAuthStateChange podem travar o cliente (lock interno do supabase-js).
+      setTimeout(() => ensureAuthenticatedApp(session.user), 0);
+    } else if (event === 'SIGNED_OUT') {
       window.currentUser = null;
       setRouteProtection(false);
     }
@@ -2304,9 +2327,9 @@ async function init() {
   // Verifica sessão existente no carregamento
   try {
     const session = await window.SB.auth.getSession();
-    if (session?.user && !window.currentUser) {
-      await loadAuthenticatedApp(session.user);
-    } else if (!session) {
+    if (session?.user) {
+      await ensureAuthenticatedApp(session.user);
+    } else if (!session && !window.currentUser) {
       setRouteProtection(false);
     }
   } catch (err) {

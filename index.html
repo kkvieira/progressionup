@@ -532,6 +532,7 @@
           <div class="gh-pill" title="XP ganho na missão">⚡ <b id="ghXP">+0 XP</b></div>
           <div class="gh-pill" title="Fichas restantes">🎫 <b id="ghTickets">0</b></div>
           <button type="button" class="gh-icon-btn" id="gameMuteBtn" title="Alternar Som">🔊</button>
+          <button type="button" class="gh-icon-btn gh-fs-btn" id="gameFullscreenBtn" title="Tela Cheia">⛶</button>
           <button type="button" class="gh-icon-btn" id="gamePauseBtn" title="Pausar / Sair (ESC)">⏸</button>
         </div>
       </div>
@@ -579,15 +580,16 @@
         </div>
         <!-- Botões Touch para celular / tablet -->
         <div class="touch-controls" id="touchControls">
-          <div class="tc-dpad">
-            <button type="button" class="tc-btn" data-key="left" aria-label="Mover Esquerda">◀</button>
-            <button type="button" class="tc-btn" data-key="down" aria-label="Agachar">▼</button>
-            <button type="button" class="tc-btn" data-key="right" aria-label="Mover Direita">▶</button>
+          <!-- Joystick analógico virtual (esquerda/direita/abaixar) -->
+          <div class="tc-joystick" id="tcJoystick" aria-label="Joystick de movimentação">
+            <div class="tc-joy-ring"></div>
+            <div class="tc-stick" id="tcStick"></div>
           </div>
+          <!-- Botões de ação estilo console retrô -->
           <div class="tc-actions">
-            <button type="button" class="tc-btn tc-skill" data-key="skill" aria-label="Habilidade Especial">⚡<small>HAB</small></button>
-            <button type="button" class="tc-btn tc-atk" data-key="attack" aria-label="Atacar">⚔<small>ATK</small></button>
-            <button type="button" class="tc-btn tc-jump" data-key="jump" aria-label="Pular">▲<small>PULO</small></button>
+            <button type="button" class="tc-btn tc-skill" data-key="skill" aria-label="Habilidade Especial"><span>⚡</span><small>HAB</small></button>
+            <button type="button" class="tc-btn tc-atk" data-key="attack" aria-label="Atacar"><span>B</span><small>ATK</small></button>
+            <button type="button" class="tc-btn tc-jump" data-key="jump" aria-label="Pular"><span>A</span><small>PULO</small></button>
           </div>
         </div>
       </div>

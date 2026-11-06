@@ -942,6 +942,8 @@ async function startCityMission(coopOptions = null) {
       jumpBufferTimer: 0,
       jumpsLeft: 2,
       crouching: false,
+      groundPlat: null,
+      dropThroughTimer: 0,
       onZipline: null,
       atkTimer: 0,
       atkVisualTimer: 0,
@@ -979,8 +981,11 @@ async function startCityMission(coopOptions = null) {
   updateMuteButtonUI();
   updateGameHUD();
 
-  $('#gameScreen').classList.add('open');
+  const gameScreenEl = $('#gameScreen');
+  gameScreenEl.classList.toggle('touch-mode', isTouchDevice());
+  gameScreenEl.classList.add('open');
   document.body.classList.add('no-scroll');
+  if (isTouchDevice()) enterGameFullscreen();
   playGameSfx('skill');
   startGameLoop();
 }
@@ -1087,6 +1092,17 @@ function updateGame(dt) {
       }
     }
   } else {
+    // Abaixar em cima de plataforma vazada (oneWay) faz o personagem descer por ela
+    p.dropThroughTimer = Math.max(0, (p.dropThroughTimer || 0) - dt);
+    if (keys.down && p.onGround && p.groundPlat?.oneWay) {
+      p.dropThroughTimer = 0.25;
+      p.onGround = false;
+      p.groundPlat = null;
+      p.coyoteTimer = 0;
+      p.jumpBufferTimer = 0;
+      p.y += 2;
+      p.vy = Math.max(p.vy, 40);
+    }
     p.crouching = keys.down && p.onGround;
     if (moveDir !== 0) {
       p.facing = moveDir;
@@ -1160,6 +1176,7 @@ function updateGame(dt) {
     const prevBottom = p.y + p.h;
     p.y += p.vy * dt;
     p.onGround = false;
+    p.groundPlat = null;
 
     for (const plat of st.platforms) {
       if (plat.fallingState === 'fall') continue;
@@ -1168,11 +1185,12 @@ function updateGame(dt) {
 
       // Descendo sobre a plataforma
       if (p.vy >= 0 && prevBottom <= plat.prevY + 5 && p.y + p.h >= plat.y) {
-        // Permite descer de plataforma oneWay se apertar para baixo + pulo
-        if (plat.oneWay && keys.down && keys.jump) continue;
+        // Ignora plataformas vazadas enquanto o personagem está descendo por elas (abaixar)
+        if (plat.oneWay && (p.dropThroughTimer > 0 || keys.down)) continue;
         p.y = plat.y - p.h;
         p.vy = 0;
         p.onGround = true;
+        p.groundPlat = plat;
 
         // Acompanha plataforma móvel ou esteira
         if (plat.style === 'moving_x') {
@@ -2412,6 +2430,8 @@ function closeCityMission(levelUpPrevLevel = null) {
   }
   $('#gameScreen').classList.remove('open');
   document.body.classList.remove('no-scroll');
+  releaseAllTouchKeys();
+  exitGameFullscreen();
   renderAll();
   if (levelUpPrevLevel !== null) {
     setTimeout(() => showLevelUp(levelUpPrevLevel), 350);
@@ -3545,9 +3565,51 @@ function handleGameMouseUp(e) {
   }
 }
 
+/** Dispositivo com toque (celular / tablet) */
+function isTouchDevice() {
+  return window.matchMedia?.('(pointer:coarse)').matches || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
+/** Entra em tela cheia e tenta travar em paisagem (precisa ser chamado a partir de um toque/clique) */
+async function enterGameFullscreen() {
+  const el = document.documentElement;
+  try {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }
+  } catch { /* navegador bloqueou ou não suporta (ex: iPhone) — o layout CSS já ocupa a tela toda */ }
+  try {
+    if (screen.orientation?.lock) await screen.orientation.lock('landscape');
+  } catch { /* nem todo navegador permite travar a orientação */ }
+  setTimeout(() => window.scrollTo(0, 1), 50);
+}
+
+function exitGameFullscreen() {
+  try { screen.orientation?.unlock?.(); } catch {}
+  try {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
+  } catch {}
+}
+
+function toggleGameFullscreen() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) exitGameFullscreen();
+  else enterGameFullscreen();
+}
+
+function releaseAllTouchKeys() {
+  keys.left = keys.right = keys.jump = keys.down = keys.attack = keys.skill = false;
+  document.querySelectorAll('#touchControls .pressed').forEach(b => b.classList.remove('pressed'));
+  const stick = $('#tcStick');
+  if (stick) stick.style.transform = 'translate(-50%, -50%)';
+}
+
 function bindTouchControls() {
   const tc = $('#touchControls');
   if (!tc) return;
+
+  // ---- Botões de ação (multitoque: cada dedo é um pointer independente) ----
   const setTouchKey = (k, isDown, btn) => {
     btn.classList.toggle('pressed', isDown);
     if (k === 'jump' && isDown && !keys.jump) keys.jumpJustPressed = true;
@@ -3557,11 +3619,69 @@ function bindTouchControls() {
   };
   tc.querySelectorAll('[data-key]').forEach(btn => {
     const k = btn.dataset.key;
-    btn.addEventListener('pointerdown', e => { e.preventDefault(); setTouchKey(k, true, btn); });
-    btn.addEventListener('pointerup', e => { e.preventDefault(); setTouchKey(k, false, btn); });
-    btn.addEventListener('pointerleave', () => setTouchKey(k, false, btn));
-    btn.addEventListener('pointercancel', () => setTouchKey(k, false, btn));
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch {}
+      setTouchKey(k, true, btn);
+      if (navigator.vibrate) navigator.vibrate(12);
+    });
+    const release = e => { e.preventDefault?.(); setTouchKey(k, false, btn); };
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('contextmenu', e => e.preventDefault());
   });
+
+  // ---- Joystick virtual ----
+  const joy = $('#tcJoystick');
+  const stick = $('#tcStick');
+  if (!joy || !stick) return;
+  let joyPointer = null;
+
+  const updateJoy = e => {
+    const r = joy.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const max = r.width * 0.38;
+    let dx = e.clientX - cx;
+    let dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
+    stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+    const nx = dx / max;
+    const ny = dy / max;
+    keys.left = nx < -0.35;
+    keys.right = nx > 0.35;
+    // Abaixar: empurrar o analógico para baixo (mais vertical do que horizontal)
+    keys.down = ny > 0.55 && Math.abs(ny) > Math.abs(nx) * 0.7;
+  };
+
+  const endJoy = e => {
+    if (joyPointer !== e.pointerId) return;
+    joyPointer = null;
+    joy.classList.remove('active');
+    keys.left = keys.right = keys.down = false;
+    stick.style.transform = 'translate(-50%, -50%)';
+  };
+
+  joy.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (joyPointer !== null) return;
+    joyPointer = e.pointerId;
+    try { joy.setPointerCapture(e.pointerId); } catch {}
+    joy.classList.add('active');
+    updateJoy(e);
+  });
+  joy.addEventListener('pointermove', e => {
+    if (joyPointer !== e.pointerId) return;
+    e.preventDefault();
+    updateJoy(e);
+  });
+  joy.addEventListener('pointerup', endJoy);
+  joy.addEventListener('pointercancel', endJoy);
+  joy.addEventListener('lostpointercapture', endJoy);
+  joy.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 function initGame() {
@@ -3575,14 +3695,14 @@ function initGame() {
     updateMuteButtonUI();
   });
   $('#gamePauseBtn')?.addEventListener('click', togglePauseGame);
+  $('#gameFullscreenBtn')?.addEventListener('click', toggleGameFullscreen);
 
   window.addEventListener('keydown', e => handleGameKey(e, true));
   window.addEventListener('keyup', e => handleGameKey(e, false));
   window.addEventListener('mousedown', handleGameMouseDown);
   window.addEventListener('mouseup', handleGameMouseUp);
-  window.addEventListener('blur', () => {
-    keys.left = keys.right = keys.jump = keys.down = keys.attack = keys.skill = false;
-  });
+  window.addEventListener('blur', releaseAllTouchKeys);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAllTouchKeys(); });
   bindTouchControls();
   renderCityBanner();
 }
