@@ -227,7 +227,8 @@ function renderBar(levelUp = false) {
   const fill = $('#xpFill'), tag = $('#xpTag');
   const apply = p => {
     fill.style.width = p + '%';
-    tag.style.left = Math.max(4, Math.min(96, p)) + '%';
+    // clamp mantém a etiqueta de % sempre dentro da tela (no celular ela cortava na borda)
+    tag.style.left = `clamp(22px, ${p}%, calc(100% - 22px))`;
     tag.textContent = p + '%';
     $('#xpBar').setAttribute('aria-valuenow', p);
   };
