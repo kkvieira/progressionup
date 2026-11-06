@@ -880,3 +880,204 @@
   .canvas-stage{ max-height:56dvh; }
   .touch-controls{ padding-top:2px; }
 }
+
+/* =====================================================================
+   CONTROLE ESTILO CONSOLE PORTÁTIL TRANSPARENTE (MOBILE)
+   Carcaça de acrílico fumê nas cores do projeto (azul-petróleo / ciano / lima)
+   com a "placa de circuito" aparecendo por dentro.
+   ===================================================================== */
+.gb-shell{ position:relative; }
+.gb-pcb, .gb-screw, .gb-center{ display:none; }
+
+/* ---- Direcional em cruz (o analógico continua funcionando por baixo) ---- */
+.tc-joystick{
+  border:none; border-radius:50%;
+  background:radial-gradient(circle, rgba(0,240,255,.10) 0 58%, rgba(0,240,255,.04) 70%, transparent 72%);
+  box-shadow:none;
+}
+.tc-joy-ring{
+  inset:9%; border:none; border-radius:0;
+  /* cruz */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 40%) 50% 0 / 34% 100% no-repeat,
+    linear-gradient(90deg,  rgba(255,255,255,.16), rgba(255,255,255,0) 40%) 0 50% / 100% 34% no-repeat,
+    linear-gradient(#0d4157, #072433) 50% 0 / 34% 100% no-repeat,
+    linear-gradient(#0d4157, #072433) 0 50% / 100% 34% no-repeat;
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 6px rgba(0,240,255,.35));
+}
+/* setinhas do direcional */
+.tc-joy-ring::before, .tc-joy-ring::after{ background:none; width:auto; height:auto; }
+.tc-joy-ring::before{
+  content:'◀  ▶'; font-size:11px; color:rgba(0,240,255,.55); letter-spacing:.9em; white-space:nowrap;
+  padding-left:.9em;
+}
+.tc-joy-ring::after{
+  content:'▲\A\A\A▼'; white-space:pre; font-size:9px; line-height:1.05; color:rgba(0,240,255,.55); text-align:center;
+}
+.tc-stick{
+  width:30%; height:30%;
+  background:radial-gradient(circle at 40% 35%, rgba(191,255,255,.55), rgba(0,240,255,.25) 55%, rgba(0,60,80,.55));
+  border:2px solid rgba(191,255,255,.65);
+  box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), 0 0 10px rgba(0,240,255,.45);
+}
+.tc-joystick.active .tc-stick{ border-color:var(--lime); box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), 0 0 16px rgba(124,255,58,.75); }
+
+/* ---- Botões A / B / HAB em "borracha" translúcida ---- */
+.tc-actions{ transform:rotate(-18deg); }
+.tc-btn{
+  border:2px solid rgba(255,255,255,.28);
+  background:radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--c1) 85%, #fff), var(--c2) 60%, var(--c3));
+  box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 0 5px rgba(0,240,255,.10), 0 0 14px color-mix(in srgb, var(--c1) 45%, transparent);
+}
+.tc-btn > span, .tc-btn > small{ transform:rotate(18deg); }
+.tc-btn.tc-jump{ --c1:#8dff5a; --c2:#2a9a1a; --c3:#0e3a06; }   /* A — lima */
+.tc-btn.tc-atk { --c1:#ff6b9a; --c2:#b3124a; --c3:#4a0620; }   /* B — magenta */
+.tc-btn.tc-skill{ --c1:#ffe27a; --c2:#c99400; --c3:#5c4300; }  /* HAB — ouro */
+
+/* ---- SELECT / START (pílulas inclinadas) ---- */
+.gb-pills{ display:flex; gap:14px; justify-content:center; transform:rotate(-22deg); }
+.gb-pill{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:none; border:0; padding:4px 2px; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.gb-pill i{
+  display:block; width:40px; height:12px; border-radius:8px;
+  background:linear-gradient(#123a4c, #061922);
+  border:1px solid rgba(0,240,255,.45);
+  box-shadow:0 3px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.gb-pill:active i{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.6), 0 0 10px rgba(124,255,58,.6); border-color:var(--lime); }
+.gb-pill small{ font-family:var(--font-title); font-size:7px; letter-spacing:.14em; color:rgba(0,240,255,.75); }
+
+/* ---- Alto-falante (furinhos) ---- */
+.gb-speaker{
+  width:64px; height:64px; border-radius:50%;
+  background:radial-gradient(circle, rgba(0,0,0,.65) 0 2.2px, transparent 2.6px) 0 0 / 9px 9px;
+  -webkit-mask:radial-gradient(circle, #000 66%, transparent 68%);
+          mask:radial-gradient(circle, #000 66%, transparent 68%);
+  opacity:.8;
+}
+
+/* ---- Parafusos ---- */
+.gb-screw{
+  position:absolute; width:9px; height:9px; border-radius:50%; z-index:0;
+  background:radial-gradient(circle at 35% 35%, #d9f6ff, #6c8e99 60%, #2b3d44);
+  box-shadow:0 0 0 2px rgba(0,240,255,.18);
+}
+.gb-screw::after{ content:''; position:absolute; left:2px; right:2px; top:50%; height:1px; background:rgba(0,0,0,.55); transform:rotate(35deg); }
+
+/* ---- Placa de circuito aparecendo pelo acrílico ---- */
+.gb-pcb{
+  position:absolute; z-index:0; pointer-events:none; border-radius:6px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, rgba(124,255,58,.22) 9px 10px, transparent 10px 22px),
+    repeating-linear-gradient(0deg,  transparent 0 13px, rgba(0,240,255,.18) 13px 14px, transparent 14px 26px),
+    radial-gradient(circle at 20% 30%, rgba(255,194,26,.75) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, rgba(255,194,26,.75) 0 2px, transparent 3px),
+    radial-gradient(circle at 45% 80%, rgba(255,194,26,.75) 0 2px, transparent 3px),
+    linear-gradient(135deg, rgba(20,90,60,.75), rgba(8,50,40,.8));
+  border:1px solid rgba(124,255,58,.35);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.5);
+  opacity:.75;
+}
+.gb-pcb::before{   /* chip */
+  content:''; position:absolute; left:28%; top:26%; width:34%; height:30%;
+  background:#0b1a1f; border:1px solid rgba(255,255,255,.2); border-radius:2px;
+  box-shadow:0 0 0 2px rgba(0,0,0,.2);
+}
+
+/* =====================================================================
+   RETRATO: a metade de baixo vira a carcaça transparente do console
+   ===================================================================== */
+@media (orientation:portrait){
+  .game-screen.touch-mode .game-controls-bar{
+    padding:0;
+  }
+  .game-screen.touch-mode .gb-shell{
+    pointer-events:auto;
+    align-items:center;
+    padding:22px max(18px, env(safe-area-inset-right)) max(26px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    min-height:min(46vh, 330px);
+    border-radius:18px 18px 70px 18px;      /* canto inferior direito arredondado */
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 22%),
+      linear-gradient(160deg, rgba(10,58,79,.62), rgba(11,22,36,.78) 55%, rgba(31,209,176,.20));
+    border:2px solid rgba(0,240,255,.38);
+    border-bottom:none;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,.18),
+      inset 0 0 40px rgba(0,240,255,.10),
+      0 -6px 24px rgba(0,0,0,.55);
+    -webkit-backdrop-filter:blur(3px) saturate(1.2);
+            backdrop-filter:blur(3px) saturate(1.2);
+  }
+  /* risco brilhante do acrílico */
+  .game-screen.touch-mode .gb-shell::before{
+    content:''; position:absolute; left:8%; right:40%; top:7px; height:3px; border-radius:3px;
+    background:linear-gradient(90deg, transparent, rgba(0,240,255,.55), transparent);
+  }
+  .game-screen.touch-mode .gb-pcb{ display:block; left:6%; bottom:14px; width:24%; height:26%; }
+  .game-screen.touch-mode .gb-screw{ display:block; }
+  .game-screen.touch-mode .gb-screw.s1{ left:12px; top:12px; }
+  .game-screen.touch-mode .gb-screw.s2{ right:12px; top:12px; }
+  .game-screen.touch-mode .gb-screw.s3{ left:12px; bottom:12px; }
+  .game-screen.touch-mode .gb-screw.s4{ right:58px; bottom:16px; }
+
+  .game-screen.touch-mode .gb-center{
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    align-self:stretch; justify-content:flex-end; z-index:1;
+  }
+  .game-screen.touch-mode .tc-joystick,
+  .game-screen.touch-mode .tc-actions{ opacity:1; z-index:1; }
+  .game-screen.touch-mode .tc-joystick{ --joy:clamp(118px, 34vw, 156px); align-self:center; }
+  .game-screen.touch-mode .gb-speaker{ display:none; }
+}
+@media (orientation:portrait) and (min-height:700px){
+  .game-screen.touch-mode .gb-speaker{ display:block; }
+}
+
+/* =====================================================================
+   PAISAGEM: duas "laterais" de acrílico sobre o jogo
+   ===================================================================== */
+@media (orientation:landscape){
+  .game-screen.touch-mode .tc-joystick,
+  .game-screen.touch-mode .tc-actions{
+    opacity:.78;
+    padding:10px;
+    border-radius:26px;
+    background:linear-gradient(160deg, rgba(10,58,79,.38), rgba(11,22,36,.45));
+    border:1px solid rgba(0,240,255,.28);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+    box-sizing:content-box;
+  }
+  .game-screen.touch-mode .tc-actions{ padding:14px 16px; }
+  .game-screen.touch-mode .gb-center{
+    display:flex; pointer-events:auto; align-self:flex-end; opacity:.8;
+  }
+  .game-screen.touch-mode .gb-pills{ transform:none; }
+}
+
+/* Navegadores sem color-mix: cores sólidas de reserva */
+@supports not (background:color-mix(in srgb, red 50%, white)){
+  .tc-btn{ background:radial-gradient(circle at 35% 28%, var(--c1), var(--c2) 60%, var(--c3)); box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 0 5px rgba(0,240,255,.10); }
+}
+
+/* Ajustes finos do console: tamanhos que cabem em celulares estreitos */
+@media (orientation:portrait){
+  .game-screen.touch-mode .gb-shell{ min-height:min(54vh, 420px); gap:4px; }
+  .game-screen.touch-mode .tc-joystick{ --joy:clamp(108px, 31vw, 146px); }
+  .game-screen.touch-mode .tc-actions{ gap:4px 8px; margin-right:4px; }
+  .game-screen.touch-mode .tc-btn{ --sz:clamp(54px, 15.5vw, 70px); }
+  .game-screen.touch-mode .tc-btn.tc-skill{ --sz:clamp(42px, 12vw, 54px); font-size:16px; }
+  .game-screen.touch-mode .gb-pills{ gap:8px; }
+  .game-screen.touch-mode .gb-pill i{ width:34px; }
+}
+@media (orientation:landscape){
+  .game-screen.touch-mode .gb-speaker{ display:none; }
+}
+@media (orientation:landscape){
+  .game-screen.touch-mode .tc-actions{ transform:none; }
+  .game-screen.touch-mode .tc-btn > span,
+  .game-screen.touch-mode .tc-btn > small{ transform:none; }
+}

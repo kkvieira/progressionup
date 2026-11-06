@@ -3598,9 +3598,14 @@ function toggleGameFullscreen() {
   else enterGameFullscreen();
 }
 
+// Dedo que está controlando o joystick agora (null = livre)
+let tcJoyPointer = null;
+
 function releaseAllTouchKeys() {
   keys.left = keys.right = keys.jump = keys.down = keys.attack = keys.skill = false;
+  tcJoyPointer = null;
   document.querySelectorAll('#touchControls .pressed').forEach(b => b.classList.remove('pressed'));
+  $('#tcJoystick')?.classList.remove('active');
   const stick = $('#tcStick');
   if (stick) stick.style.transform = 'translate(-50%, -50%)';
 }
@@ -3617,26 +3622,36 @@ function bindTouchControls() {
     if (k === 'skill' && isDown && !keys.skill) keys.skillJustPressed = true;
     keys[k] = isDown;
   };
+  // Qual dedo está segurando cada botão (para soltar certo mesmo se o evento vier de fora)
+  const btnPointers = new Map();
   tc.querySelectorAll('[data-key]').forEach(btn => {
     const k = btn.dataset.key;
     btn.addEventListener('pointerdown', e => {
       e.preventDefault();
       try { btn.setPointerCapture(e.pointerId); } catch {}
+      btnPointers.set(e.pointerId, btn);
       setTouchKey(k, true, btn);
       if (navigator.vibrate) navigator.vibrate(12);
     });
-    const release = e => { e.preventDefault?.(); setTouchKey(k, false, btn); };
+    const release = e => {
+      e.preventDefault?.();
+      btnPointers.delete(e.pointerId);
+      setTouchKey(k, false, btn);
+    };
     btn.addEventListener('pointerup', release);
     btn.addEventListener('pointercancel', release);
     btn.addEventListener('lostpointercapture', release);
     btn.addEventListener('contextmenu', e => e.preventDefault());
   });
 
+  // Botões START (pausa) e SELECT (tela cheia) do console
+  tc.querySelector('[data-gb="start"]')?.addEventListener('click', e => { e.preventDefault(); togglePauseGame(); });
+  tc.querySelector('[data-gb="select"]')?.addEventListener('click', e => { e.preventDefault(); toggleGameFullscreen(); });
+
   // ---- Joystick virtual ----
   const joy = $('#tcJoystick');
   const stick = $('#tcStick');
   if (!joy || !stick) return;
-  let joyPointer = null;
 
   const updateJoy = e => {
     const r = joy.getBoundingClientRect();
@@ -3657,31 +3672,58 @@ function bindTouchControls() {
     keys.down = ny > 0.55 && Math.abs(ny) > Math.abs(nx) * 0.7;
   };
 
-  const endJoy = e => {
-    if (joyPointer !== e.pointerId) return;
-    joyPointer = null;
+  const resetJoy = () => {
+    tcJoyPointer = null;
     joy.classList.remove('active');
     keys.left = keys.right = keys.down = false;
     stick.style.transform = 'translate(-50%, -50%)';
   };
+  const endJoy = e => {
+    if (tcJoyPointer !== e.pointerId) return;
+    resetJoy();
+  };
 
   joy.addEventListener('pointerdown', e => {
     e.preventDefault();
-    if (joyPointer !== null) return;
-    joyPointer = e.pointerId;
+    // Um novo toque no joystick SEMPRE assume o controle. Antes, se o celular
+    // perdesse o "soltou" do dedo anterior (notificação, gesto do sistema,
+    // dedo escorregando para fora), o joystick ficava preso como "ocupado"
+    // e ignorava todos os toques seguintes.
+    tcJoyPointer = e.pointerId;
     try { joy.setPointerCapture(e.pointerId); } catch {}
     joy.classList.add('active');
     updateJoy(e);
   });
-  joy.addEventListener('pointermove', e => {
-    if (joyPointer !== e.pointerId) return;
-    e.preventDefault();
+  // Movimento escutado na janela: continua funcionando mesmo se a captura do dedo falhar
+  window.addEventListener('pointermove', e => {
+    if (tcJoyPointer !== e.pointerId) return;
+    if (e.cancelable) e.preventDefault();
     updateJoy(e);
-  });
-  joy.addEventListener('pointerup', endJoy);
-  joy.addEventListener('pointercancel', endJoy);
+  }, { passive: false });
   joy.addEventListener('lostpointercapture', endJoy);
+  window.addEventListener('pointerup', endJoy);
+  window.addEventListener('pointercancel', endJoy);
   joy.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Rede de segurança: quando nenhum dedo está mais na tela, solta tudo
+  const allFingersUp = e => {
+    if (e.touches && e.touches.length > 0) {
+      // Solta só o joystick se o dedo dele não estiver mais na tela
+      if (tcJoyPointer !== null) {
+        const r = joy.getBoundingClientRect();
+        const pad = r.width;  // tolerância: o dedo pode estar arrastando fora do círculo
+        const stillOnJoy = [...e.touches].some(t =>
+          t.clientX > r.left - pad && t.clientX < r.right + pad &&
+          t.clientY > r.top - pad && t.clientY < r.bottom + pad);
+        if (!stillOnJoy) resetJoy();
+      }
+      return;
+    }
+    btnPointers.clear();
+    releaseAllTouchKeys();
+  };
+  window.addEventListener('touchend', allFingersUp, { passive: true });
+  window.addEventListener('touchcancel', allFingersUp, { passive: true });
 }
 
 function initGame() {

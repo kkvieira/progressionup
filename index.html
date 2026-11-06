@@ -588,11 +588,25 @@
           <span><b>BOTÃO ESQUERDO DO MOUSE</b> ATAQUE SIMPLES</span>
         </div>
         <!-- Botões Touch para celular / tablet -->
-        <div class="touch-controls" id="touchControls">
-          <!-- Joystick analógico virtual (esquerda/direita/abaixar) -->
-          <div class="tc-joystick" id="tcJoystick" aria-label="Joystick de movimentação">
+        <div class="touch-controls gb-shell" id="touchControls">
+          <!-- Decoração do console portátil transparente (placa e parafusos aparecendo) -->
+          <div class="gb-pcb" aria-hidden="true"></div>
+          <span class="gb-screw s1" aria-hidden="true"></span>
+          <span class="gb-screw s2" aria-hidden="true"></span>
+          <span class="gb-screw s3" aria-hidden="true"></span>
+          <span class="gb-screw s4" aria-hidden="true"></span>
+          <!-- Direcional (analógico por baixo: esquerda/direita/abaixar) -->
+          <div class="tc-joystick" id="tcJoystick" aria-label="Direcional de movimentação">
             <div class="tc-joy-ring"></div>
             <div class="tc-stick" id="tcStick"></div>
+          </div>
+          <!-- SELECT / START -->
+          <div class="gb-center">
+            <div class="gb-pills">
+              <button type="button" class="gb-pill" data-gb="select" aria-label="Tela cheia"><i></i><small>SELECT</small></button>
+              <button type="button" class="gb-pill" data-gb="start" aria-label="Pausar"><i></i><small>START</small></button>
+            </div>
+            <div class="gb-speaker" aria-hidden="true"></div>
           </div>
           <!-- Botões de ação estilo console retrô -->
           <div class="tc-actions">
