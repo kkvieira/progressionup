@@ -6,7 +6,7 @@ const CONFIG = {
   XP_BY_DIFFICULTY: { facil: 10, media: 25, dificil: 50, epica: 100 },
   TICKETS_BY_DIFFICULTY: { facil: 1, media: 2, dificil: 3, epica: 5 },
   DIFFICULTY_LABELS:{ facil: 'FÁCIL', media: 'MÉDIA', dificil: 'DIFÍCIL', epica: 'ÉPICA' },
-  BASE_XP_TO_LEVEL: 100,      // XP do nível 1 → 2
+  BASE_XP_TO_LEVEL: 100,      // XP do nível 1 <i data-ico="arrowRight"></i> 2
   XP_GROWTH: 1.25,            // +25% de XP necessário a cada nível
   MAX_TASKS: 15,              // limite de missões ativas por usuário
   STREAK_STEP_DAYS: 3,        // a cada 3 dias seguidos...
@@ -123,15 +123,15 @@ function setSyncStatus(mode = 'online', customText = '') {
   pill.classList.remove('syncing', 'error');
   if (!navigator.onLine || mode === 'offline') {
     pill.classList.add('error');
-    pill.textContent = '⚠ OFFLINE';
+    pill.innerHTML = `${pxIcon('warn')} OFFLINE`;
   } else if (mode === 'syncing') {
     pill.classList.add('syncing');
-    pill.textContent = `⟳ ${customText || 'SINCRONIZANDO...'}`;
+    pill.innerHTML = `${pxIcon('reset')} ${escapeHTML(customText || 'SINCRONIZANDO...')}`;
   } else if (mode === 'error') {
     pill.classList.add('error');
-    pill.textContent = `✕ ${customText || 'ERRO DE REDE'}`;
+    pill.innerHTML = `${pxIcon('close')} ${escapeHTML(customText || 'ERRO DE REDE')}`;
   } else {
-    pill.textContent = `● ${customText || 'ONLINE • SUPABASE'}`;
+    pill.innerHTML = `${pxIcon('dot')} ${escapeHTML(customText || 'ONLINE • SUPABASE')}`;
   }
 }
 window.setSyncStatus = setSyncStatus;
@@ -245,7 +245,7 @@ function renderBar(levelUp = false) {
 
   $('#xpText').textContent = `XP ${state.xp} / ${need} • TOTAL ${state.totalXP}`;
   const st = effectiveStreak(), bonus = Math.round((streakMultiplier(st) - 1) * 100);
-  $('#streakText').textContent = `🔥 SEQUÊNCIA: ${st} ${st === 1 ? 'DIA' : 'DIAS'}${bonus ? ` • +${bonus}% XP` : ''}`;
+  $('#streakText').innerHTML = `<i data-ico="flame"></i> SEQUÊNCIA: ${st} ${st === 1 ? 'DIA' : 'DIAS'}${bonus ? ` • +${bonus}% XP` : ''}`;
   $('#levelNum').firstChild.textContent = state.level;
 }
 
@@ -254,7 +254,7 @@ function renderAchievements(justUnlocked = []) {
   $('#achList').innerHTML = ACHIEVEMENTS.map(a => {
     const on = (a.daily ? ach.daily : ach.permanent)[a.id];
     return `<li class="ach-item ${on ? 'unlocked' : ''} ${justUnlocked.includes(a.id) ? 'just-unlocked' : ''}">
-      <span class="ach-icon">${on ? '✓' : ''}</span><span>${a.label}</span></li>`;
+      <span class="ach-icon">${on ? '<i data-ico="check"></i>' : ''}</span><span>${a.label}</span></li>`;
   }).join('');
 }
 
@@ -276,10 +276,10 @@ function renderMissions() {
           <span class="badge ${t.difficulty}">${CONFIG.DIFFICULTY_LABELS[t.difficulty]}</span>
           ${typeof categoryBadge === 'function' ? categoryBadge(t) : ''}
           <span class="xp-chip">+${done ? CONFIG.XP_BY_DIFFICULTY[t.difficulty] : xpForTask(t)} XP</span>
-          <span class="tkt-chip" title="Fichas de entrada na Cidade">🎫 +${tkts} ${tkts === 1 ? 'FICHA' : 'FICHAS'}</span>
+          <span class="tkt-chip" title="Fichas de entrada na Cidade"><i data-ico="ticket"></i> +${tkts} ${tkts === 1 ? 'FICHA' : 'FICHAS'}</span>
         </div>
       </div>
-      ${done ? `<span class="done-chip">✓ CONCLUÍDA HOJE</span>`
+      ${done ? `<span class="done-chip"><i data-ico="check"></i> CONCLUÍDA HOJE</span>`
              : `<button class="plus-btn" data-log="${t.id}" title="Registrar progresso" aria-label="Registrar ${escapeHTML(t.name)}"></button>`}
     </li>`;
   }).join('');
@@ -329,7 +329,7 @@ function renderDiary() {
               <span style="color:var(--lime)">+${r.xp} XP</span>
             </div>
             ${r.text ? `<div class="entry-text">${escapeHTML(r.text)}</div>` : ''}
-            <div class="entry-time">⏱ ${new Date(r.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="entry-time"><i data-ico="clock"></i> ${new Date(r.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         </div>`).join('')}
     </div>`).join('');
@@ -357,7 +357,7 @@ function renderCalendar() {
 function buildDifficultyOptions() {
   $('#diffOptions').innerHTML = Object.keys(CONFIG.XP_BY_DIFFICULTY).map((k, i) => `
     <input type="radio" name="diff" id="diff_${k}" value="${k}" ${i === 0 ? 'checked' : ''}>
-    <label for="diff_${k}">${CONFIG.DIFFICULTY_LABELS[k]}<small>${CONFIG.XP_BY_DIFFICULTY[k]} XP • 🎫 +${CONFIG.TICKETS_BY_DIFFICULTY[k]}</small></label>`).join('');
+    <label for="diff_${k}">${CONFIG.DIFFICULTY_LABELS[k]}<small>${CONFIG.XP_BY_DIFFICULTY[k]} XP • <i data-ico="ticket"></i> +${CONFIG.TICKETS_BY_DIFFICULTY[k]}</small></label>`).join('');
 }
 
 function openTaskModal(editId = null) {
@@ -401,10 +401,10 @@ function renderTaskAdmin() {
   $('#taskAdminList').innerHTML = state.tasks.length
     ? state.tasks.map(t => `<li>
         <span class="t-name">${escapeHTML(t.name)}</span>
-        ${t.category && typeof CATEGORIES !== 'undefined' && CATEGORIES[t.category] ? `<span class="cat-badge">${CATEGORIES[t.category].icon}</span>` : ''}
+        ${t.category && typeof CATEGORIES !== 'undefined' && CATEGORIES[t.category] ? `<span class="cat-badge">${pxIcon(CATEGORIES[t.category].icon)}</span>` : ''}
         <span class="badge ${t.difficulty}">${CONFIG.DIFFICULTY_LABELS[t.difficulty]}</span>
-        <button class="icon-btn" data-edit="${t.id}" title="Editar">✎</button>
-        <button class="icon-btn del" data-del="${t.id}" title="Excluir">🗑</button>
+        <button class="icon-btn" data-edit="${t.id}" title="Editar" aria-label="Editar"><i data-ico="pencil"></i></button>
+        <button class="icon-btn del" data-del="${t.id}" title="Excluir" aria-label="Excluir"><i data-ico="trash"></i></button>
       </li>`).join('')
     : '<li class="empty">NENHUMA MISSÃO AINDA.</li>';
 }
@@ -507,9 +507,9 @@ function validateLog() {
   const hint = $('#reqHint');
   if (hint) {
     hint.classList.toggle('ok', ok);
-    hint.textContent = ok
-      ? '✓ REGISTRO VÁLIDO. PRONTO PARA ENVIAR AO SERVIDOR!'
-      : '⚠ ENVIE UMA FOTO (PNG/JPG/WEBP ATÉ 5 MB) OU ESCREVA UMA DESCRIÇÃO PARA CONCLUIR.';
+    hint.innerHTML = ok
+      ? '<i data-ico="check"></i> REGISTRO VÁLIDO. PRONTO PARA ENVIAR AO SERVIDOR!'
+      : '<i data-ico="warn"></i> ENVIE UMA FOTO (PNG/JPG/WEBP ATÉ 5 MB) OU ESCREVA UMA DESCRIÇÃO PARA CONCLUIR.';
   }
 }
 
@@ -703,7 +703,7 @@ function closeModal(id) { $('#' + id)?.classList.remove('open'); }
 function toast(msg, error = false) {
   const el = document.createElement('div');
   el.className = 'toast' + (error ? ' err' : '');
-  el.textContent = msg;
+  el.innerHTML = typeof pxText === 'function' ? pxText(escapeHTML(msg)) : escapeHTML(msg);
   $('#toasts').appendChild(el);
   setTimeout(() => el.remove(), 3900);
 }
@@ -924,7 +924,7 @@ function offerLocalStorageMigration(userId, legacy) {
     } catch (err) {
       toast(err.message || 'ERRO AO IMPORTAR DADOS LOCAIS.', true);
       btn.disabled = false;
-      btn.textContent = '⬆ IMPORTAR PARA MINHA CONTA';
+      btn.innerHTML = '<i data-ico="upload"></i> IMPORTAR PARA MINHA CONTA';
     }
   };
 
@@ -969,7 +969,7 @@ async function renderConnectedProviders() {
       return `
         <div class="provider-row ${linked ? 'connected' : ''}">
           <div class="provider-info">
-            <b>${prov.name} ${linked ? '✓ CONECTADO' : ''}</b>
+            <b>${prov.name} ${linked ? '<i data-ico="check"></i> CONECTADO' : ''}</b>
             <small>${linked ? `Vinculado (${escapeHTML(emailOrSub)})` : prov.desc}</small>
           </div>
           ${linked
@@ -1047,10 +1047,10 @@ function bindEvents() {
     const hint = $('#pwdStrengthHint');
     if (!hint || authMode !== 'signup') return;
     if (val.length < 8) {
-      hint.textContent = `⚠ SENHA FRACA (${val.length}/8 CARACTERES MÍNIMOS)`;
+      hint.innerHTML = `<i data-ico="warn"></i> SENHA FRACA (${val.length}/8 CARACTERES MÍNIMOS)`;
       hint.className = 'pwd-strength weak';
     } else {
-      hint.textContent = '✓ SENHA FORTE VÁLIDA';
+      hint.innerHTML = '<i data-ico="check"></i> SENHA FORTE VÁLIDA';
       hint.className = 'pwd-strength strong';
     }
   });
@@ -1288,7 +1288,12 @@ function bindEvents() {
    ===================================================================== */
 let activeSocialSec = 'friends';
 let activeConversationId = '00000000-0000-0000-0000-000000000001'; // Canal Global padrão
-let activeConversationTitle = '🌐 REDE GLOBAL DE AGENTES';
+let activeConversationTitle = 'REDE GLOBAL DE AGENTES';
+
+/** Remove emoji do começo de um título (os canais agora usam ícones pixel art) */
+function stripLeadingEmoji(text) {
+  return String(text || '').replace(/^[\p{Extended_Pictographic}\u2190-\u21FF\u2600-\u27BF\uFE0F\s:]+/u, '').trim() || String(text || '');
+}
 let loadedChatMessages = [];
 let pendingChatAttachmentFile = null;
 let typingUsersMap = {}; // { username: timeoutId }
@@ -1414,20 +1419,20 @@ async function renderFriendsSection() {
         // Presence usa 'online' | 'jogando' | 'offline'; a classe CSS do ponto usa 'playing'
         const rawSt = amigos.obterStatusAgente(peerId);
         const st = rawSt === 'jogando' ? 'playing' : rawSt;
-        const stLabel = st === 'playing' ? '🎮 EM MISSÃO NA CIDADE' : st === 'online' ? '● ONLINE AGORA' : '○ OFFLINE';
+        const stLabel = st === 'playing' ? '<i data-ico="gamepad"></i> EM MISSÃO NA CIDADE' : st === 'online' ? '<i data-ico="dot"></i> ONLINE AGORA' : '<i data-ico="ring"></i> OFFLINE';
         return `
           <div class="social-item">
             <div class="social-user-meta">
               <span class="presence-dot ${st}" title="${stLabel}"></span>
               <div>
                 <div style="font-weight:700;font-size:14px">@${escapeHTML(p.username || 'agente')} <span style="color:var(--lime);font-size:11px">NV.${p.level || 1}</span></div>
-                <div style="font-size:11px;color:var(--mint)">${stLabel} • 🔥 ${p.streak_atual || 0}d</div>
+                <div style="font-size:11px;color:var(--mint)">${stLabel} • <i data-ico="flame"></i> ${p.streak_atual || 0}d</div>
               </div>
             </div>
             <div class="social-actions">
-              <button type="button" class="small-btn" data-open-dm="${peerId}" data-dm-name="@${escapeHTML(p.username || 'agente')}">💬 DM</button>
-              <button type="button" class="small-btn" data-remove-friend="${f.id}" title="Desfazer amizade">✕</button>
-              <button type="button" class="small-btn" data-block-user="${peerId}" title="Bloquear agente">🚫</button>
+              <button type="button" class="small-btn" data-open-dm="${peerId}" data-dm-name="@${escapeHTML(p.username || 'agente')}"><i data-ico="chat"></i> DM</button>
+              <button type="button" class="small-btn" data-remove-friend="${f.id}" title="Desfazer amizade" aria-label="Desfazer amizade"><i data-ico="close"></i></button>
+              <button type="button" class="small-btn" data-block-user="${peerId}" title="Bloquear agente" aria-label="Bloquear agente"><i data-ico="block"></i></button>
             </div>
           </div>`;
       }).join('');
@@ -1448,8 +1453,8 @@ async function renderFriendsSection() {
             </div>
             <div class="social-actions">
               ${isIncoming
-                ? `<button type="button" class="small-btn" style="border-color:var(--lime);color:var(--lime)" data-accept-friend="${f.id}">✓ ACEITAR</button>
-                   <button type="button" class="small-btn" data-reject-friend="${f.id}">✕ RECUSAR</button>`
+                ? `<button type="button" class="small-btn" style="border-color:var(--lime);color:var(--lime)" data-accept-friend="${f.id}"><i data-ico="check"></i> ACEITAR</button>
+                   <button type="button" class="small-btn" data-reject-friend="${f.id}"><i data-ico="close"></i> RECUSAR</button>`
                 : `<button type="button" class="small-btn" data-remove-friend="${f.id}">CANCELAR</button>`
               }
             </div>
@@ -1462,7 +1467,7 @@ async function renderFriendsSection() {
     } else {
       blockedEl.innerHTML = data.blocks.map(b => `
         <div class="social-item">
-          <div style="font-size:12px">🚫 <b>@${escapeHTML(b.blockedProfile?.username || b.blocked_id.slice(0, 8))}</b></div>
+          <div style="font-size:12px"><i data-ico="block"></i> <b>@${escapeHTML(b.blockedProfile?.username || b.blocked_id.slice(0, 8))}</b></div>
           <button type="button" class="small-btn" data-unblock-user="${b.blocked_id}">DESBLOQUEAR</button>
         </div>
       `).join('');
@@ -1488,16 +1493,17 @@ async function renderChatSection() {
 
     if (!convs.some(c => c.id === activeConversationId)) {
       activeConversationId = convs[0].id;
-      activeConversationTitle = convs[0].titulo || '🌐 REDE GLOBAL DE AGENTES';
+      activeConversationTitle = convs[0].titulo || 'REDE GLOBAL DE AGENTES';
     }
 
     listEl.innerHTML = convs.map(c => {
       // O serviço já devolve o título com ícone (ex.: "🌐 REDE GLOBAL", "💬 @FULANO", "🛡️ ESQUADRÃO [TAG]")
-      const fallback = c.tipo === 'global' ? '🌐 REDE GLOBAL' : c.tipo === 'group' ? '🛡️ CHAT DO ESQUADRÃO' : '💬 MENSAGEM DIRETA';
-      const label = c.titulo || fallback;
+      const fallback = c.tipo === 'global' ? 'REDE GLOBAL' : c.tipo === 'group' ? 'CHAT DO ESQUADRÃO' : 'MENSAGEM DIRETA';
+      const label = stripLeadingEmoji(c.titulo || fallback);
+      const convIco = c.tipo === 'global' ? 'globe' : c.tipo === 'group' ? 'shield' : 'chat';
       return `
         <button type="button" class="chat-conv-btn ${c.id === activeConversationId ? 'active' : ''}" data-select-conv="${c.id}" data-conv-title="${escapeHTML(label)}">
-          <span>${escapeHTML(label)}</span>
+          <span>${pxIcon(convIco)} ${escapeHTML(label)}</span>
           ${c.unreadCount > 0 ? `<span class="mini-badge">${c.unreadCount}</span>` : ''}
         </button>`;
     }).join('');
@@ -1511,7 +1517,7 @@ async function renderChatSection() {
 async function openChatConversation(convId, title) {
   activeConversationId = convId;
   if (title) activeConversationTitle = title;
-  $('#chatActiveTitle').textContent = activeConversationTitle;
+  $('#chatActiveTitle').textContent = stripLeadingEmoji(activeConversationTitle);
   const box = $('#chatMessagesBox');
   box.innerHTML = `<div class="empty">SINCRONIZANDO MENSAGENS CRIPTOGRAFADAS...</div>`;
 
@@ -1560,7 +1566,7 @@ function updateTypingIndicatorUI() {
     el.textContent = '';
   } else {
     el.classList.remove('hidden');
-    el.textContent = `⌨ ${names.map(n => '@' + n).join(', ')} está digitando...`;
+    el.innerHTML = `<i data-ico="keyboard"></i> ${escapeHTML(names.map(n => '@' + n).join(', '))} está digitando...`;
   }
 }
 
@@ -1582,11 +1588,11 @@ async function renderChatMessagesList(scrollToBottom = false) {
           <span>${escapeHTML(senderName)} ${m.sender?.level ? `(NV.${m.sender.level})` : ''}</span>
           <span>
             ${timeStr}
-            ${!isMine && !m.is_system ? `<button type="button" class="icon-btn" style="padding:0 4px;font-size:10px;margin-left:4px" data-report-msg="${m.id}" title="Denunciar mensagem">⚑</button>` : ''}
+            ${!isMine && !m.is_system ? `<button type="button" class="icon-btn" style="padding:0 4px;font-size:10px;margin-left:4px" data-report-msg="${m.id}" title="Denunciar mensagem" aria-label="Denunciar mensagem"><i data-ico="flag"></i></button>` : ''}
           </span>
         </div>
         <div class="chat-msg-body">${escapeHTML(m.content)}</div>
-        ${m.attachment_url ? `<div style="margin-top:4px;font-size:11px;color:var(--cyan)">📎 Anexo protegido: <button type="button" class="small-btn" data-open-chat-att="${escapeHTML(m.signedAttachmentUrl || '')}">ABRIR IMAGEM</button></div>` : ''}
+        ${m.attachment_url ? `<div style="margin-top:4px;font-size:11px;color:var(--cyan)"><i data-ico="image"></i> Anexo protegido: <button type="button" class="small-btn" data-open-chat-att="${escapeHTML(m.signedAttachmentUrl || '')}">ABRIR IMAGEM</button></div>` : ''}
       </div>`;
   }).join('');
 
@@ -1622,11 +1628,11 @@ async function renderGroupsSection() {
                   <option value="request">SOLICITAÇÃO</option>
                 </select>
                 <label class="btn ghost" style="text-align:center;cursor:pointer">
-                  🛡️ EMBLEMA (OPCIONAL)
+                  <i data-ico="shield"></i> EMBLEMA (OPCIONAL)
                   <input type="file" id="newGroupEmblemFile" accept="image/png,image/jpeg,image/webp" class="hidden">
                 </label>
               </div>
-              <button type="submit" class="btn green">⚡ CRIAR ESQUADRÃO</button>
+              <button type="submit" class="btn green"><i data-ico="bolt"></i> CRIAR ESQUADRÃO</button>
             </form>
 
             <div class="panel-title" style="margin-top:18px">ENTRAR POR CÓDIGO DE CONVITE</div>
@@ -1642,7 +1648,7 @@ async function renderGroupsSection() {
               ${publicGroups.length ? publicGroups.map(g => `
                 <div class="social-item">
                   <div>
-                    <div style="font-weight:700;color:var(--lime)">🛡️ [${escapeHTML(g.tag || '')}] ${escapeHTML(g.nome)} <small style="color:var(--cyan)">(${g.total_membros || 1}/${g.max_members || 30})</small></div>
+                    <div style="font-weight:700;color:var(--lime)"><i data-ico="shield"></i> [${escapeHTML(g.tag || '')}] ${escapeHTML(g.nome)} <small style="color:var(--cyan)">(${g.total_membros || 1}/${g.max_members || 30})</small></div>
                     <div style="font-size:11px;opacity:.8;text-transform:none">${escapeHTML(g.descricao || 'Sem descrição.')}</div>
                   </div>
                   ${g.join_type === 'open'
@@ -1722,7 +1728,7 @@ async function renderGroupsSection() {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
             <div>
               <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--lime)">
-                🛡️ [${escapeHTML(group.tag || '')}] ${escapeHTML(group.nome)}
+                <i data-ico="shield"></i> [${escapeHTML(group.tag || '')}] ${escapeHTML(group.nome)}
               </div>
               <div style="font-size:12px;color:var(--mint);text-transform:none">${escapeHTML(group.descricao || '')}</div>
               <div style="font-size:11px;margin-top:6px;color:var(--cyan)">
@@ -1730,8 +1736,8 @@ async function renderGroupsSection() {
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${groupConversationId ? `<button type="button" class="small-btn" id="openGroupChatBtn">💬 CHAT DO CLÃ</button>` : ''}
-              <button type="button" class="small-btn" id="leaveGroupBtn" style="border-color:#FF5A5A;color:#FF8080">🚪 SAIR</button>
+              ${groupConversationId ? `<button type="button" class="small-btn" id="openGroupChatBtn"><i data-ico="chat"></i> CHAT DO CLÃ</button>` : ''}
+              <button type="button" class="small-btn" id="leaveGroupBtn" style="border-color:#FF5A5A;color:#FF8080"><i data-ico="exit"></i> SAIR</button>
             </div>
           </div>
 
@@ -1742,8 +1748,8 @@ async function renderGroupsSection() {
               return `
                 <div class="social-item" style="flex-direction:column;align-items:stretch">
                   <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700">
-                    <span>${gl.concluida ? '✓ ' : '🎯 '}${escapeHTML(gl.titulo || '')}</span>
-                    <span style="color:var(--lime)">${gl.progresso} / ${gl.meta} (${pct}%) • 🪙 +${gl.recompensa_moedas}</span>
+                    <span>${gl.concluida ? '<i data-ico="check"></i> ' : '<i data-ico="target"></i> '}${escapeHTML(gl.titulo || '')}</span>
+                    <span style="color:var(--lime)">${gl.progresso} / ${gl.meta} (${pct}%) • <i data-ico="coin"></i> +${gl.recompensa_moedas}</span>
                   </div>
                   <div class="group-goal-bar"><div class="group-goal-fill" style="width:${pct}%"></div></div>
                 </div>`;
@@ -1764,12 +1770,12 @@ async function renderGroupsSection() {
                       @${escapeHTML(p.username || 'agente')}
                       <span class="badge ${m.role === 'leader' ? 'epica' : m.role === 'officer' ? 'dificil' : 'facil'}">${m.role.toUpperCase()}</span>
                     </div>
-                    <div style="font-size:11px;color:var(--mint)">NV.${p.level || 1} • ⚡ ${p.xp_total || 0} XP</div>
+                    <div style="font-size:11px;color:var(--mint)">NV.${p.level || 1} • <i data-ico="bolt"></i> ${p.xp_total || 0} XP</div>
                   </div>
                   <div class="social-actions">
-                    ${isLeader && !isMe && m.role === 'member' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="officer">▲ OFICIAL</button>` : ''}
-                    ${isLeader && !isMe && m.role === 'officer' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="member">▼ MEMBRO</button>` : ''}
-                    ${isOceanLeaderCanKick(isOfficerOrLeader, myRole, m.role, isMe) ? `<button type="button" class="small-btn" data-kick-member="${m.user_id}">✕ EXPULSAR</button>` : ''}
+                    ${isLeader && !isMe && m.role === 'member' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="officer"><i data-ico="triUp"></i> OFICIAL</button>` : ''}
+                    ${isLeader && !isMe && m.role === 'officer' ? `<button type="button" class="small-btn" data-promote-member="${m.user_id}" data-role="member"><i data-ico="triDown"></i> MEMBRO</button>` : ''}
+                    ${isOceanLeaderCanKick(isOfficerOrLeader, myRole, m.role, isMe) ? `<button type="button" class="small-btn" data-kick-member="${m.user_id}"><i data-ico="close"></i> EXPULSAR</button>` : ''}
                   </div>
                 </div>`;
             }).join('')}
@@ -1780,7 +1786,7 @@ async function renderGroupsSection() {
 
     $('#openGroupChatBtn')?.addEventListener('click', async () => {
       activeConversationId = groupConversationId;
-      activeConversationTitle = `🛡️ ESQUADRÃO [${group.tag || ''}]`;
+      activeConversationTitle = `ESQUADRÃO [${group.tag || ''}]`;
       await switchSocialSubSection('chat');
     });
 
@@ -1867,14 +1873,14 @@ async function renderCoopLobbyUI() {
         <div class="social-list" style="margin-bottom:12px">
           ${players.map(p => `
             <div class="social-item">
-              <span>🎮 <b>@${escapeHTML(p.character_snapshot?.username || p.character_snapshot?.nome || 'agente')}</b> (NV.${p.character_snapshot?.level || 1})</span>
-              <span style="color:var(--lime);font-size:11px">● PRONTO</span>
+              <span><i data-ico="gamepad"></i> <b>@${escapeHTML(p.character_snapshot?.username || p.character_snapshot?.nome || 'agente')}</b> (NV.${p.character_snapshot?.level || 1})</span>
+              <span style="color:var(--lime);font-size:11px"><i data-ico="dot"></i> PRONTO</span>
             </div>
           `).join('')}
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${active.isHost
-            ? `<button type="button" class="btn green" id="hostStartCoopBtn">▶ INICIAR MISSÃO CO-OP</button>`
+            ? `<button type="button" class="btn green" id="hostStartCoopBtn"><i data-ico="play"></i> INICIAR MISSÃO CO-OP</button>`
             : `<div style="font-size:12px;color:var(--cyan);padding:8px 0">AGUARDANDO O HOST INICIAR A PARTIDA...</div>`
           }
           <button type="button" class="btn red" id="leaveCoopRoomBtn">SAIR DA SALA</button>
@@ -1952,7 +1958,7 @@ async function renderNotificationsSection() {
     listEl.innerHTML = items.map(n => `
       <div class="social-item ${!n.lida ? 'unread' : ''}">
         <div>
-          <div style="font-weight:700;color:var(--lime)">🔔 ${escapeHTML(n.titulo || '')}</div>
+          <div style="font-weight:700;color:var(--lime)"><i data-ico="bell"></i> ${escapeHTML(n.titulo || '')}</div>
           <div style="font-size:12px;text-transform:none;opacity:.9">${escapeHTML(n.mensagem || '')}</div>
           <div style="font-size:10px;color:var(--mint);margin-top:3px">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
         </div>
@@ -1991,10 +1997,10 @@ async function renderRankingTab() {
       if (season) {
         const endStr = new Date(season.ends_at).toLocaleDateString('pt-BR');
         seasonEl.innerHTML = `
-          <span>🏆 <b>TEMPORADA ${season.period === 'monthly' ? 'MENSAL' : 'SEMANAL'} ATIVA</b> • ENCERRA EM ${endStr}</span>
-          <span style="color:var(--lime)">TOP 1–3 GANHAM +500/+300/+150 🪙 E MOLDURA EXCLUSIVA!</span>`;
+          <span><i data-ico="trophy"></i> <b>TEMPORADA ${season.period === 'monthly' ? 'MENSAL' : 'SEMANAL'} ATIVA</b> • ENCERRA EM ${endStr}</span>
+          <span style="color:var(--lime)">TOP 1–3 GANHAM +500/+300/+150 <i data-ico="coin"></i> E MOLDURA EXCLUSIVA!</span>`;
       } else {
-        seasonEl.innerHTML = `<span>🏆 CLASSIFICAÇÃO GERAL DE AGENTES E ESQUADRÕES</span>`;
+        seasonEl.innerHTML = `<span><i data-ico="trophy"></i> CLASSIFICAÇÃO GERAL DE AGENTES E ESQUADRÕES</span>`;
       }
     }
 
@@ -2019,14 +2025,14 @@ async function renderRankingTab() {
       const isGroups = activeRankCat === 'groups';
       const isMe = !isGroups && r.user_id === window.currentUser?.id;
       const displayName = isGroups ? `[${r.tag || ''}] ${r.nome || 'esquadrão'}` : (r.username || 'agente');
-      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `#${pos}`;
+      const medal = pos <= 3 ? `<span class="px-medal medal-${pos}">${pxIcon('medal')}</span>` : `#${pos}`;
       return `
         <div class="rank-row ${topCls} ${isMe ? 'me' : ''}">
           <div class="rank-pos">${medal}</div>
           <div>
             <div style="font-weight:700;font-size:14px">
-              ${isGroups ? '🛡️ ' : '@'}${escapeHTML(displayName)}
-              ${r.moldura_equipada ? `<span class="badge epica" title="Moldura de Temporada">★ ${escapeHTML(r.moldura_equipada)}</span>` : ''}
+              ${isGroups ? '<i data-ico="shield"></i> ' : '@'}${escapeHTML(displayName)}
+              ${r.moldura_equipada ? `<span class="badge epica" title="Moldura de Temporada"><i data-ico="star"></i> ${escapeHTML(r.moldura_equipada)}</span>` : ''}
             </div>
             <div style="font-size:11px;color:var(--mint)">
               ${isGroups ? `Membros: ${r.total_membros || 1}/${r.max_members || 30}` : `Nível ${r.level || 1}${r.group_tag ? ` • [${escapeHTML(r.group_tag)}]` : ''}`}
@@ -2092,7 +2098,7 @@ function bindSocialAndRankingEvents() {
       } else if (btn.dataset.openDm) {
         const convId = await window.SB.services.chat.abrirOuCriarDM(btn.dataset.openDm);
         activeConversationId = convId;
-        activeConversationTitle = `💬 DM: ${btn.dataset.dmName || 'ALIADO'}`;
+        activeConversationTitle = `DM: ${btn.dataset.dmName || 'ALIADO'}`;
         await switchSocialSubSection('chat');
       }
     } catch (err) {
@@ -2144,7 +2150,7 @@ function bindSocialAndRankingEvents() {
     const prev = $('#chatAttachPreview');
     if (prev) {
       prev.classList.remove('hidden');
-      prev.innerHTML = `<span>📎 ${escapeHTML(file.name)}</span> <button type="button" class="small-btn" id="clearChatAttachBtn">✕</button>`;
+      prev.innerHTML = `<span><i data-ico="image"></i> ${escapeHTML(file.name)}</span> <button type="button" class="small-btn" id="clearChatAttachBtn" aria-label="Remover anexo"><i data-ico="close"></i></button>`;
       $('#clearChatAttachBtn').onclick = () => {
         pendingChatAttachmentFile = null;
         $('#chatAttachmentInput').value = '';
@@ -2169,7 +2175,7 @@ function bindSocialAndRankingEvents() {
       }
       const sent = await window.SB.services.chat.enviarMensagem(
         activeConversationId,
-        content || '📷 [Imagem anexada]',
+        content || '[IMAGEM ANEXADA]',
         attachmentPath
       );
       input.value = '';

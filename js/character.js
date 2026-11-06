@@ -37,12 +37,12 @@ function shadeHex(hex, amt) {
    1. CATEGORIAS DE TAREFA (usadas pelos bônus de classe)
    ===================================================================== */
 const CATEGORIES = {
-  '':       { label: 'SEM CATEGORIA', icon: '◇' },
-  fisico:   { label: 'FÍSICO',   icon: '💪' },
-  mental:   { label: 'MENTAL',   icon: '🧠' },
-  criativo: { label: 'CRIATIVO', icon: '🎨' },
-  social:   { label: 'SOCIAL',   icon: '🤝' },
-  rotina:   { label: 'ROTINA',   icon: '🔁' }
+  '':       { label: 'SEM CATEGORIA', icon: 'diamond' },
+  fisico:   { label: 'FÍSICO',   icon: 'dumbbell' },
+  mental:   { label: 'MENTAL',   icon: 'brain' },
+  criativo: { label: 'CRIATIVO', icon: 'palette' },
+  social:   { label: 'SOCIAL',   icon: 'handshake' },
+  rotina:   { label: 'ROTINA',   icon: 'reset' }
 };
 
 /* =====================================================================
@@ -323,18 +323,18 @@ const WEAPON_TIERS = [
    7. CLASSES (12) — arma inicial + bônus passivo de XP por categoria
    ===================================================================== */
 const CLASSES = [
-  { id: 'guerreiro',  name: 'GUERREIRO',  icon: '⚔️', weapon: 'espada_longa',   bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Mestre do combate corpo a corpo. Força e disciplina acima de tudo.' },
-  { id: 'mago',       name: 'MAGO',       icon: '🔮', weapon: 'cajado_arcano',  bonus: { category: 'mental',   pct: 0.10 }, desc: 'Estudioso das artes arcanas. Conhecimento é poder.' },
-  { id: 'arqueiro',   name: 'ARQUEIRO',   icon: '🏹', weapon: 'arco_curto',     bonus: { category: 'rotina',   pct: 0.10 }, desc: 'Precisão e paciência. Acerta o alvo todos os dias.' },
-  { id: 'ladino',     name: 'LADINO',     icon: '🗡️', weapon: 'adagas_gemeas',  bonus: { category: 'social',   pct: 0.10 }, desc: 'Ágil e astuto. Abre portas com lábia e esperteza.' },
-  { id: 'clerigo',    name: 'CLÉRIGO',    icon: '✨', weapon: 'maca_sagrada',   bonus: { category: 'social',   pct: 0.10 }, desc: 'Guia e protege os aliados com fé e cuidado.' },
-  { id: 'paladino',   name: 'PALADINO',   icon: '🛡️', weapon: 'espada_escudo',  bonus: { category: 'rotina',   pct: 0.10 }, desc: 'Guerreiro sagrado de honra e constância inabaláveis.' },
-  { id: 'barbaro',    name: 'BÁRBARO',    icon: '🪓', weapon: 'machado_duplo',  bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Fúria indomável. Supera seus limites físicos.' },
-  { id: 'bardo',      name: 'BARDO',      icon: '🎵', weapon: 'alaude',         bonus: { category: 'criativo', pct: 0.10 }, desc: 'Artista viajante. Inspira com música e histórias.' },
-  { id: 'monge',      name: 'MONGE',      icon: '👊', weapon: 'manoplas',       bonus: { category: 'mental',   pct: 0.10 }, desc: 'Corpo e mente em equilíbrio através da meditação.' },
-  { id: 'druida',     name: 'DRUIDA',     icon: '🌿', weapon: 'cajado_madeira', bonus: { category: 'criativo', pct: 0.10 }, desc: 'Guardião da natureza. Cria e transforma.' },
-  { id: 'necromante', name: 'NECROMANTE', icon: '💀', weapon: 'foice_sombria',  bonus: { category: 'mental',   pct: 0.10 }, desc: 'Desvenda segredos proibidos com estudo profundo.' },
-  { id: 'cacador',    name: 'CAÇADOR',    icon: '🎯', weapon: 'besta',          bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Rastreador incansável, forjado na resistência.' }
+  { id: 'guerreiro',  name: 'GUERREIRO',  icon: 'sword', weapon: 'espada_longa',   bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Mestre do combate corpo a corpo. Força e disciplina acima de tudo.' },
+  { id: 'mago',       name: 'MAGO',       icon: 'orb', weapon: 'cajado_arcano',  bonus: { category: 'mental',   pct: 0.10 }, desc: 'Estudioso das artes arcanas. Conhecimento é poder.' },
+  { id: 'arqueiro',   name: 'ARQUEIRO',   icon: 'bow', weapon: 'arco_curto',     bonus: { category: 'rotina',   pct: 0.10 }, desc: 'Precisão e paciência. Acerta o alvo todos os dias.' },
+  { id: 'ladino',     name: 'LADINO',     icon: 'dagger', weapon: 'adagas_gemeas',  bonus: { category: 'social',   pct: 0.10 }, desc: 'Ágil e astuto. Abre portas com lábia e esperteza.' },
+  { id: 'clerigo',    name: 'CLÉRIGO',    icon: 'sparkle', weapon: 'maca_sagrada',   bonus: { category: 'social',   pct: 0.10 }, desc: 'Guia e protege os aliados com fé e cuidado.' },
+  { id: 'paladino',   name: 'PALADINO',   icon: 'shield', weapon: 'espada_escudo',  bonus: { category: 'rotina',   pct: 0.10 }, desc: 'Guerreiro sagrado de honra e constância inabaláveis.' },
+  { id: 'barbaro',    name: 'BÁRBARO',    icon: 'axe', weapon: 'machado_duplo',  bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Fúria indomável. Supera seus limites físicos.' },
+  { id: 'bardo',      name: 'BARDO',      icon: 'music', weapon: 'alaude',         bonus: { category: 'criativo', pct: 0.10 }, desc: 'Artista viajante. Inspira com música e histórias.' },
+  { id: 'monge',      name: 'MONGE',      icon: 'fist', weapon: 'manoplas',       bonus: { category: 'mental',   pct: 0.10 }, desc: 'Corpo e mente em equilíbrio através da meditação.' },
+  { id: 'druida',     name: 'DRUIDA',     icon: 'leaf', weapon: 'cajado_madeira', bonus: { category: 'criativo', pct: 0.10 }, desc: 'Guardião da natureza. Cria e transforma.' },
+  { id: 'necromante', name: 'NECROMANTE', icon: 'skull', weapon: 'foice_sombria',  bonus: { category: 'mental',   pct: 0.10 }, desc: 'Desvenda segredos proibidos com estudo profundo.' },
+  { id: 'cacador',    name: 'CAÇADOR',    icon: 'target', weapon: 'besta',          bonus: { category: 'fisico',   pct: 0.10 }, desc: 'Rastreador incansável, forjado na resistência.' }
 ];
 
 /* Perfil padrão — estrutura salva em state.profile */
@@ -379,8 +379,8 @@ function classBonusFor(task) {
 function categoryBadge(task) {
   if (!task.category || !CATEGORIES[task.category]) return '';
   const c = CATEGORIES[task.category], b = classBonusFor(task);
-  return `<span class="cat-badge">${c.icon} ${c.label}</span>` +
-         (b ? `<span class="class-bonus" title="Bônus de classe">${getClass(state.profile.classe).icon} +${Math.round(b * 100)}%</span>` : '');
+  return `<span class="cat-badge">${pxIcon(c.icon)} ${c.label}</span>` +
+         (b ? `<span class="class-bonus" title="Bônus de classe">${pxIcon(getClass(state.profile.classe).icon)} +${Math.round(b * 100)}%</span>` : '');
 }
 
 /* =====================================================================
@@ -518,12 +518,12 @@ const EDITOR_OPTIONS = [
   { key: 'corRoupa', label: 'COR DA ROUPA', thumb: 'swatch', items: CLOTH_COLORS,
     name: it => it.name, color: it => it.hex, get: d => d.corRoupa, set: (d, i) => { d.corRoupa = i; } },
   { key: 'classe', label: 'CLASSE', thumb: 'icon', items: CLASSES,
-    name: it => it.name, icon: it => it.icon, get: d => findIdx(CLASSES, d.classe),
+    name: it => it.name, icon: it => pxIcon(it.icon), get: d => findIdx(CLASSES, d.classe),
     set: (d, i) => { d.classe = CLASSES[i].id; d.arma = CLASSES[i].weapon; } }
 ];
 
 /* ---------- Armário (wardrobe): categorias + carrossel giratório ---------- */
-const WARDROBE_ICONS = { genero: '⚥', pele: '✋', cabelo: '💇', corCabelo: '🧪', roupa: '👕', corRoupa: '🎨', classe: '⚔️' };
+const WARDROBE_ICONS = { genero: 'gender', pele: 'hand', cabelo: 'hair', corCabelo: 'drop', roupa: 'shirt', corRoupa: 'palette', classe: 'sword' };
 let wardrobeCat = EDITOR_OPTIONS[0].key;
 
 /** Espaçamento horizontal entre os itens do carrossel, proporcional à largura */
@@ -537,7 +537,7 @@ function buildEditor() {
     <div class="wr-cats" role="tablist" aria-label="Categorias do armário">
       ${EDITOR_OPTIONS.map(o => `
         <button type="button" class="wr-cat" role="tab" data-cat="${o.key}">
-          <span class="wr-cat-ico">${WARDROBE_ICONS[o.key] || '•'}</span>
+          <span class="wr-cat-ico">${pxIcon(WARDROBE_ICONS[o.key] || 'plus')}</span>
           <span class="wr-cat-txt">${o.label}</span>
         </button>`).join('')}
     </div>
@@ -551,9 +551,9 @@ function buildEditor() {
         <div class="wr-track" id="wrTrack"></div>
       </div>
       <div class="wr-ctrl">
-        <button type="button" class="arrow wr-arrow" data-dir="-1" aria-label="Anterior">◀</button>
+        <button type="button" class="arrow wr-arrow" data-dir="-1" aria-label="Anterior">${pxIcon('triLeft')}</button>
         <div class="wr-name" id="wrName"></div>
-        <button type="button" class="arrow wr-arrow" data-dir="1" aria-label="Próximo">▶</button>
+        <button type="button" class="arrow wr-arrow" data-dir="1" aria-label="Próximo">${pxIcon('triRight')}</button>
       </div>
       <div class="wr-hint">ARRASTE PARA GIRAR • TOQUE PARA VESTIR</div>
     </div>`;
@@ -573,7 +573,7 @@ function renderWardrobeTrack() {
       : o.thumb === 'swatch'
       ? `<span class="wr-hanger"></span><span class="wr-sw" style="background:${o.color(it)}"></span>`
       : `<span class="wr-ico">${o.icon(it)}</span><small>${title}</small>`;
-    return `<button type="button" class="wr-item" data-i="${i}" title="${title}" aria-label="${title}">${inner}<span class="wr-lock">🔒</span></button>`;
+    return `<button type="button" class="wr-item" data-i="${i}" title="${title}" aria-label="${title}">${inner}<span class="wr-lock">${pxIcon('lock')}</span></button>`;
   }).join('');
 }
 
@@ -747,10 +747,10 @@ function bindWardrobe() {
 function renderClassCard(el, classId, tierIdx) {
   const c = getClass(classId), cat = CATEGORIES[c.bonus.category];
   el.innerHTML = `
-    <div class="cc-head"><span class="cc-icon">${c.icon}</span><div><b>${c.name}</b><small>${escapeHTML(c.desc)}</small></div></div>
+    <div class="cc-head"><span class="cc-icon">${pxIcon(c.icon)}</span><div><b>${c.name}</b><small>${escapeHTML(c.desc)}</small></div></div>
     <div class="cc-weapon"><canvas class="sprite"></canvas>
       <div><small>ARMA</small><b>${escapeHTML(weaponName(c.weapon, tierIdx)).toUpperCase()}</b>
-      <span class="cc-bonus">+${Math.round(c.bonus.pct * 100)}% XP EM TAREFAS ${cat.icon} ${cat.label}</span></div>
+      <span class="cc-bonus">+${Math.round(c.bonus.pct * 100)}% XP EM TAREFAS ${pxIcon(cat.icon)} ${cat.label}</span></div>
     </div>`;
   drawWeapon(el.querySelector('canvas'), c.weapon, tierIdx);
 }
@@ -878,9 +878,9 @@ function renderProfile() {
   drawSprite($('#profileSprite'), p);
   $('#profileName').textContent = p.nome;
   $('#profileInfo').innerHTML = `
-    <div class="pf-class"><span class="cc-icon">${c.icon}</span>
+    <div class="pf-class"><span class="cc-icon">${pxIcon(c.icon)}</span>
       <div><small>CLASSE</small><b>${c.name}</b><p>${escapeHTML(c.desc)}</p>
-      <span class="cc-bonus">+${Math.round(c.bonus.pct * 100)}% XP EM TAREFAS ${cat.icon} ${cat.label}</span></div></div>
+      <span class="cc-bonus">+${Math.round(c.bonus.pct * 100)}% XP EM TAREFAS ${pxIcon(cat.icon)} ${cat.label}</span></div></div>
     <div class="pf-weapon"><canvas class="sprite" id="profileWeapon"></canvas>
       <div><small>ARMA • TIER ${WEAPON_TIERS[tier].name}${skinInfo}</small><b class="tier-txt t${tier}">${escapeHTML(weaponName(c.weapon, tier)).toUpperCase()}</b>
         <div class="tier-track">${WEAPON_TIERS.map((t, i) => `<span class="${i <= tier ? 'on t' + i : ''}" title="${t.name} (NÍVEL ${i * WEAPON_LEVEL_STEP || 1})"></span>`).join('')}</div>
@@ -888,11 +888,11 @@ function renderProfile() {
     <div class="pf-stats">
       <div><small>NÍVEL</small><b>${state.level}</b></div>
       <div><small>XP TOTAL</small><b>${state.totalXP}</b></div>
-      <div><small>SEQUÊNCIA</small><b>${effectiveStreak()} 🔥</b></div>
+      <div><small>SEQUÊNCIA</small><b>${effectiveStreak()} <i data-ico="flame"></i></b></div>
       <div><small>MISSÕES CONCLUÍDAS</small><b>${state.records.length}</b></div>
-      <div><small>PARTIDAS JOGADAS</small><b>${g.matchesPlayed || 0} 🎮</b></div>
-      <div><small>INIMIGOS DERROTADOS</small><b>${g.enemiesDefeated || 0} 💼</b></div>
-      <div><small>BOSSES VENCIDOS</small><b>${g.bossesDefeated || 0} 🤖</b></div>
+      <div><small>PARTIDAS JOGADAS</small><b>${g.matchesPlayed || 0} <i data-ico="gamepad"></i></b></div>
+      <div><small>INIMIGOS DERROTADOS</small><b>${g.enemiesDefeated || 0} <i data-ico="briefcase"></i></b></div>
+      <div><small>BOSSES VENCIDOS</small><b>${g.bossesDefeated || 0} <i data-ico="robot"></i></b></div>
       <div><small>RECORDE DISTÂNCIA</small><b>${g.bestDistance || 0}m</b></div>
     </div>`;
   drawWeapon($('#profileWeapon'), c.weapon, tier);
@@ -913,7 +913,7 @@ function celebrateCharacter(prevLevel) {
   cv.classList.remove('celebrate'); void cv.offsetWidth; cv.classList.add('celebrate');
   const before = tierForLevel(prevLevel), after = tierForLevel(state.level);
   info.classList.toggle('hidden', after <= before);
-  if (after > before) info.textContent = `⚡ ARMA EVOLUIU: ${weaponName(getClass(state.profile.classe).weapon, after).toUpperCase()}`;
+  if (after > before) info.innerHTML = `<i data-ico="bolt"></i> ARMA EVOLUIU: ${weaponName(getClass(state.profile.classe).weapon, after).toUpperCase()}`;
 }
 
 /* =====================================================================
@@ -922,7 +922,7 @@ function celebrateCharacter(prevLevel) {
 function initCharacter() {
   // Opções de categoria no modal de tarefas
   const sel = $('#taskCategory');
-  if (sel) sel.innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `<option value="${k}">${c.icon} ${c.label}</option>`).join('');
+  if (sel) sel.innerHTML = Object.entries(CATEGORIES).map(([k, c]) => `<option value="${k}">${c.label}</option>`).join('');
 
   buildEditor();
 

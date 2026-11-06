@@ -1026,3 +1026,48 @@ img, video, canvas{ max-width:100%; }
 @media (display-mode: standalone){
   body{ -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none; }
 }
+
+/* Sem zoom no toque duplo (iPhone/Android) e sem zoom automático ao focar campos */
+html{ touch-action:manipulation; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+@media (pointer:coarse){
+  input, textarea, select{ font-size:max(16px, 1em) !important; }
+}
+
+/* =====================================================================
+   ÍCONES PIXEL ART (js/icons.js) — substituem os emojis dos botões
+   ===================================================================== */
+.px-ico{
+  display:inline-block; width:1.05em; height:1.05em; flex:0 0 auto;
+  vertical-align:-0.16em; shape-rendering:crispEdges; image-rendering:pixelated;
+  filter:drop-shadow(0 0 2px currentColor);
+}
+.px-ico .px-alt{ fill:currentColor; opacity:.45; }
+i[data-ico]{ display:inline-flex; font-style:normal; line-height:0; vertical-align:middle; }
+i[data-ico]{ margin-right:.35em; }
+.modal-close i[data-ico], .gh-icon-btn i[data-ico], .icon-btn i[data-ico], .chat-attach-btn i[data-ico],
+#removePhoto i[data-ico], .tc-btn i[data-ico], .curr-ico i[data-ico]{ margin-right:0; }
+.modal-close .px-ico{ width:20px; height:20px; filter:drop-shadow(0 0 4px currentColor); }
+.icon-btn .px-ico{ width:15px; height:15px; }
+.curr-ico .px-ico{ width:1.15em; height:1.15em; }
+.curr-ico, .gh-pill [data-ico]{ color:var(--gold); }
+.gh-pill:nth-child(2) [data-ico]{ color:var(--lime); }
+.wr-cat-ico .px-ico{ width:22px; height:22px; }
+.wr-arrow .px-ico{ width:16px; height:16px; }
+.wr-lock .px-ico{ width:13px; height:13px; color:var(--gold); }
+.chat-attach-btn .px-ico{ width:20px; height:20px; }
+.pwa-ico .px-ico{ width:15px; height:15px; color:var(--lime); }
+
+/* Medalhas e ícones em textos */
+.px-medal{ display:inline-flex; vertical-align:middle; }
+.px-medal .px-ico{ width:1.3em; height:1.3em; }
+.px-medal.medal-1{ color:#FFC21A; }
+.px-medal.medal-2{ color:#d7e3ea; }
+.px-medal.medal-3{ color:#d8894a; }
+.toast .px-ico{ margin-right:.3em; }
+.cc-icon .px-ico, .wr-ico .px-ico{ width:1em; height:1em; }
+.shop-card-ico .px-ico{ width:1em; height:1em; }
+.hud-sync-pill .px-ico{ width:.8em; height:.8em; vertical-align:-0.05em; }
+.kbd-hints .px-ico{ width:.9em; height:.9em; margin:0 .08em; }
+i[data-ico="coin"], i[data-ico="ticket"], i[data-ico="trophy"]{ color:var(--gold); }
+i[data-ico="flame"]{ color:#FF8A3D; }
+i[data-ico="heart"]{ color:#FF5A6E; }

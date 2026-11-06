@@ -25,12 +25,12 @@
 
   const gruposService = {
     EMBLEM_PRESETS: [
-      { id: 'shield_cyan', name: 'ESCUDO CIANO',   icon: '🛡️' },
-      { id: 'blade_lime',  name: 'LÂMINA NEON',    icon: '⚔️' },
-      { id: 'skull_omega', name: 'CRÂNIO ÔMEGA',   icon: '💀' },
-      { id: 'mecha_core',  name: 'NÚCLEO MECHA',   icon: '🤖' },
-      { id: 'bolt_gold',   name: 'RAIO DOURADO',   icon: '⚡' },
-      { id: 'eye_cyber',   name: 'VISOR TÁTICO',   icon: '👁️' }
+      { id: 'shield_cyan', name: 'ESCUDO CIANO',   icon: 'shield' },
+      { id: 'blade_lime',  name: 'LÂMINA NEON',    icon: 'sword' },
+      { id: 'skull_omega', name: 'CRÂNIO ÔMEGA',   icon: 'skull' },
+      { id: 'mecha_core',  name: 'NÚCLEO MECHA',   icon: 'robot' },
+      { id: 'bolt_gold',   name: 'RAIO DOURADO',   icon: 'bolt' },
+      { id: 'eye_cyber',   name: 'VISOR TÁTICO',   icon: 'eye' }
     ],
 
     /**

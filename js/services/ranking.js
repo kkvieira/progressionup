@@ -30,12 +30,12 @@
 
   const rankingService = {
     CATEGORIES: [
-      { id: 'xp',            label: '⚡ XP TOTAL',         unit: 'XP' },
-      { id: 'missions_week', label: '🎯 MISSÕES (SEMANA)', unit: 'MISSÕES' },
-      { id: 'streak',        label: '🔥 SEQUÊNCIA',        unit: 'DIAS' },
-      { id: 'distance',      label: '🏙️ DISTÂNCIA CIDADE', unit: 'm' },
-      { id: 'bosses',        label: '🤖 BOSSES ABATIDOS',  unit: 'BOSSES' },
-      { id: 'groups',        label: '🛡️ ESQUADRÕES',       unit: 'XP CLÃ' }
+      { id: 'xp',            label: 'XP TOTAL',         unit: 'XP' },
+      { id: 'missions_week', label: 'MISSÕES (SEMANA)', unit: 'MISSÕES' },
+      { id: 'streak',        label: 'SEQUÊNCIA',        unit: 'DIAS' },
+      { id: 'distance',      label: 'DISTÂNCIA CIDADE', unit: 'm' },
+      { id: 'bosses',        label: 'BOSSES ABATIDOS',  unit: 'BOSSES' },
+      { id: 'groups',        label: 'ESQUADRÕES',       unit: 'XP CLÃ' }
     ],
 
     /**

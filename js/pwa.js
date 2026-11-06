@@ -62,6 +62,25 @@
     if (isIOS && !isStandalone()) showButtons(true);
   });
 
+  // ---- iPhone: impede o zoom ao tocar duas vezes e o zoom de pinça ----
+  // (o Safari do iOS ignora user-scalable=no, então bloqueamos os gestos aqui)
+  if (isIOS) {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', e => {
+      const now = Date.now();
+      const isField = e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
+      if (!isField && now - lastTouchEnd < 350 && e.cancelable) {
+        e.preventDefault();
+        // garante que o segundo toque rápido em um botão ainda funcione
+        const btn = e.target.closest && e.target.closest('button, a, [role="button"], label');
+        if (btn && !btn.closest('#touchControls')) btn.click();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(type =>
+      document.addEventListener(type, e => e.preventDefault(), { passive: false }));
+  }
+
   // Registro do Service Worker (só funciona em HTTPS ou localhost)
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
     window.addEventListener('load', () => {

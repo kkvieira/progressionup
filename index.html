@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sistema de Missões</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <!-- PWA: aplicativo instalável -->
@@ -38,7 +38,7 @@
 </svg>
 
 <div class="offline-banner hidden" id="offlineBanner">
-  ⚠ CONEXÃO PERDIDA COM O SERVIDOR CENTRAL — MODO SOMENTE LEITURA (AÇÕES DO SERVIDOR BLOQUEADAS)
+  <i data-ico="warn"></i> CONEXÃO PERDIDA COM O SERVIDOR CENTRAL — MODO SOMENTE LEITURA (AÇÕES DO SERVIDOR BLOQUEADAS)
 </div>
 
 <!-- ============ TELA DE LOGIN / CADASTRO (SUPABASE AUTH + OAUTH PKCE) ============ -->
@@ -76,7 +76,7 @@
         </button>
       </div>
 
-      <button type="button" class="pwa-install-btn hidden" data-pwa-install>📲 INSTALAR APLICATIVO</button>
+      <button type="button" class="pwa-install-btn hidden" data-pwa-install><i data-ico="install"></i> INSTALAR APLICATIVO</button>
 
       <div class="or-sep" id="authOrSep">— OU E-MAIL E SENHA —</div>
 
@@ -102,7 +102,7 @@
 
       <div class="auth-links">
         <button type="button" class="link-btn" id="forgotPwdBtn">ESQUECI MINHA SENHA</button>
-        <button type="button" class="link-btn hidden" id="backToLoginBtn">← VOLTAR AO LOGIN</button>
+        <button type="button" class="link-btn hidden" id="backToLoginBtn"><i data-ico="arrowLeft"></i> VOLTAR AO LOGIN</button>
       </div>
     </div></div>
   </div>
@@ -124,15 +124,15 @@
       </div>
       <div class="xp-info">
         <span id="xpText">XP 0 / 100</span>
-        <span class="hud-sync-pill" id="hudSyncStatus">● ONLINE</span>
+        <span class="hud-sync-pill" id="hudSyncStatus"><i data-ico="dot"></i> ONLINE</span>
         <span class="streak" id="streakText">SEQUÊNCIA: 0 DIAS</span>
       </div>
     </div>
     <div class="level-num" id="levelNum" title="Nível atual">1<span class="level-label">NÍVEL</span></div>
     <div class="topbar-actions">
-      <button type="button" class="hud-top-btn hidden" data-pwa-install title="Instalar como aplicativo">📲 APP</button>
-      <button type="button" class="hud-top-btn" id="accountSettingsBtn" title="Configurações da Conta">⚙ CONTA</button>
-      <button type="button" class="hud-top-btn danger" id="logoutBtn" title="Encerrar Sessão">⏻ SAIR</button>
+      <button type="button" class="hud-top-btn hidden" data-pwa-install title="Instalar como aplicativo"><i data-ico="install"></i> APP</button>
+      <button type="button" class="hud-top-btn" id="accountSettingsBtn" title="Configurações da Conta"><i data-ico="gear"></i> CONTA</button>
+      <button type="button" class="hud-top-btn danger" id="logoutBtn" title="Encerrar Sessão"><i data-ico="power"></i> SAIR</button>
     </div>
   </header>
 
@@ -163,7 +163,7 @@
         <section id="tabMissions">
           <div class="panel-head">
             <h2>MISSÕES DIÁRIAS <span class="counter" id="taskCounter">0/15</span></h2>
-            <button class="small-btn" id="manageBtn">⚙ EDITAR MISSÕES</button>
+            <button class="small-btn" id="manageBtn"><i data-ico="pencil"></i> EDITAR MISSÕES</button>
           </div>
           <ul class="mission-list" id="missionList"></ul>
         </section>
@@ -172,7 +172,7 @@
         <section id="tabDiary" class="hidden">
           <div class="panel-head">
             <h2>DIÁRIO DE MISSÕES</h2>
-            <button class="small-btn hidden" id="clearFilterBtn">✕ VER TODOS</button>
+            <button class="small-btn hidden" id="clearFilterBtn"><i data-ico="close"></i> VER TODOS</button>
           </div>
           <div class="diary-grid">
             <div>
@@ -195,11 +195,11 @@
           <div class="panel-head">
             <h2>CENTRAL DE ALIANÇAS &amp; MULTIPLAYER</h2>
             <div class="social-subnav" id="socialSubnav">
-              <button type="button" class="small-btn active" data-social-sec="friends">👥 AMIGOS</button>
-              <button type="button" class="small-btn" data-social-sec="chat">💬 CHAT <span class="mini-badge hidden" id="chatSubUnread">0</span></button>
-              <button type="button" class="small-btn" data-social-sec="groups">🛡️ ESQUADRÃO</button>
-              <button type="button" class="small-btn" data-social-sec="coop">🎮 SALA CO-OP</button>
-              <button type="button" class="small-btn" data-social-sec="notifs">🔔 ALERTAS <span class="mini-badge hidden" id="notifSubUnread">0</span></button>
+              <button type="button" class="small-btn active" data-social-sec="friends"><i data-ico="users"></i> AMIGOS</button>
+              <button type="button" class="small-btn" data-social-sec="chat"><i data-ico="chat"></i> CHAT <span class="mini-badge hidden" id="chatSubUnread">0</span></button>
+              <button type="button" class="small-btn" data-social-sec="groups"><i data-ico="shield"></i> ESQUADRÃO</button>
+              <button type="button" class="small-btn" data-social-sec="coop"><i data-ico="gamepad"></i> SALA CO-OP</button>
+              <button type="button" class="small-btn" data-social-sec="notifs"><i data-ico="bell"></i> ALERTAS <span class="mini-badge hidden" id="notifSubUnread">0</span></button>
             </div>
           </div>
 
@@ -232,13 +232,13 @@
               </div>
               <div class="chat-main">
                 <div class="chat-header">
-                  <span id="chatActiveTitle">🌐 REDE GLOBAL DE AGENTES</span>
-                  <button type="button" class="small-btn hidden" id="chatLoadMoreBtn">↑ CARREGAR ANTERIORES</button>
+                  <span id="chatActiveTitle">REDE GLOBAL DE AGENTES</span>
+                  <button type="button" class="small-btn hidden" id="chatLoadMoreBtn"><i data-ico="arrowUp"></i> CARREGAR ANTERIORES</button>
                 </div>
                 <div class="chat-messages" id="chatMessagesBox"></div>
                 <div class="chat-typing hidden" id="chatTypingIndicator"></div>
                 <form class="chat-input-bar" id="chatSendForm" autocomplete="off">
-                  <label class="chat-attach-btn" for="chatAttachmentInput" title="Anexar imagem até 2 MB (PNG/JPG/WEBP)">📷</label>
+                  <label class="chat-attach-btn" for="chatAttachmentInput" title="Anexar imagem até 2 MB (PNG/JPG/WEBP)"><i data-ico="camera"></i></label>
                   <input type="file" id="chatAttachmentInput" accept="image/png,image/jpeg,image/webp" class="hidden">
                   <input type="text" class="input" id="chatMessageInput" maxlength="500" placeholder="Transmitir mensagem na rede (máx. 500 caracteres)...">
                   <button type="submit" class="btn green" id="chatSendBtn">ENVIAR</button>
@@ -262,7 +262,7 @@
                   Crie uma sala para gerar um código de 6 dígitos ou entre na frequência de um aliado. O Host sincroniza inimigos, maletas e o Mecha-Boss via Broadcast em tempo real (15–20 Hz).
                 </p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-                  <button type="button" class="btn green" id="createCoopRoomBtn">⚡ CRIAR SALA CO-OP</button>
+                  <button type="button" class="btn green" id="createCoopRoomBtn"><i data-ico="bolt"></i> CRIAR SALA CO-OP</button>
                 </div>
                 <form class="social-bar-form" id="joinCoopRoomForm">
                   <input type="text" class="input" id="joinRoomCodeInput" maxlength="8" placeholder="CÓDIGO DA SALA (EX.: A1B2C3)">
@@ -280,7 +280,7 @@
           <div class="social-sec hidden" id="socialSecNotifs">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
               <div class="panel-title" style="margin-bottom:0;flex:1">REGISTRO DE TRANSMISSÕES E ALERTAS</div>
-              <button type="button" class="small-btn" id="markAllNotifsReadBtn">✓ MARCAR TODAS COMO LIDAS</button>
+              <button type="button" class="small-btn" id="markAllNotifsReadBtn"><i data-ico="check"></i> MARCAR TODAS COMO LIDAS</button>
             </div>
             <div id="notificationsList" class="social-list"></div>
           </div>
@@ -297,12 +297,12 @@
             </div>
           </div>
           <div class="rank-cat-tabs" id="rankCatTabs">
-            <button type="button" class="small-btn active" data-rank-cat="xp">⚡ XP TOTAL</button>
-            <button type="button" class="small-btn" data-rank-cat="missions_week">🎯 MISSÕES (SEMANA)</button>
-            <button type="button" class="small-btn" data-rank-cat="streak">🔥 SEQUÊNCIA</button>
-            <button type="button" class="small-btn" data-rank-cat="distance">🏙️ DISTÂNCIA</button>
-            <button type="button" class="small-btn" data-rank-cat="bosses">🤖 BOSSES</button>
-            <button type="button" class="small-btn" data-rank-cat="groups">🛡️ ESQUADRÕES</button>
+            <button type="button" class="small-btn active" data-rank-cat="xp"><i data-ico="bolt"></i> XP TOTAL</button>
+            <button type="button" class="small-btn" data-rank-cat="missions_week"><i data-ico="target"></i> MISSÕES (SEMANA)</button>
+            <button type="button" class="small-btn" data-rank-cat="streak"><i data-ico="flame"></i> SEQUÊNCIA</button>
+            <button type="button" class="small-btn" data-rank-cat="distance"><i data-ico="building"></i> DISTÂNCIA</button>
+            <button type="button" class="small-btn" data-rank-cat="bosses"><i data-ico="robot"></i> BOSSES</button>
+            <button type="button" class="small-btn" data-rank-cat="groups"><i data-ico="shield"></i> ESQUADRÕES</button>
           </div>
           <div class="rank-season-banner" id="rankSeasonBanner"></div>
           <div class="rank-my-pos" id="rankMyPositionBar"></div>
@@ -320,24 +320,24 @@
       <div class="hud-border"><div class="hud-inner city-bar-inner">
         <div class="city-currencies">
           <div class="curr-pill" title="Fichas de Entrada (Ganhe concluindo missões!)">
-            <span class="curr-ico">🎫</span>
+            <span class="curr-ico"><i data-ico="ticket"></i></span>
             <div><small>FICHAS</small><b id="cityTicketsCount">0</b></div>
           </div>
           <div class="curr-pill" title="Moedas Cyber (Ganhe na Cidade)">
-            <span class="curr-ico">🪙</span>
+            <span class="curr-ico"><i data-ico="coin"></i></span>
             <div><small>MOEDAS</small><b id="cityCoinsCount">0</b></div>
           </div>
           <div class="curr-pill xp-cap-pill" title="Limite diário de XP ganho em combate na Cidade (30% do nível)">
-            <span class="curr-ico">⚡</span>
+            <span class="curr-ico"><i data-ico="bolt"></i></span>
             <div><small>XP CIDADE HOJE</small><b id="cityDailyXPText">0/30</b></div>
           </div>
         </div>
         <div class="city-actions">
           <button type="button" class="city-play-btn" id="startCityMissionBtn">
-            <span class="play-title">▶ INICIAR MISSÃO NA CIDADE</span>
+            <span class="play-title"><i data-ico="play"></i> INICIAR MISSÃO NA CIDADE</span>
             <span class="play-sub">CUSTO: 1 FICHA • RECOMPENSA: XP + MOEDAS</span>
           </button>
-          <button type="button" class="small-btn city-shop-btn" id="openCityShopBtn">🛒 LOJA &amp; UPGRADES</button>
+          <button type="button" class="small-btn city-shop-btn" id="openCityShopBtn"><i data-ico="cart"></i> LOJA &amp; UPGRADES</button>
         </div>
       </div></div>
     </div>
@@ -351,7 +351,7 @@
 <div class="modal" id="taskModal">
   <div class="modal-box wide hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
       <div class="modal-title" id="taskModalTitle">NOVA MISSÃO</div>
       <div class="modal-sub" id="taskModalSub">DEFINA O NOME E A DIFICULDADE DA ATIVIDADE.</div>
       <form id="taskForm" autocomplete="off">
@@ -383,7 +383,7 @@
 <div class="modal" id="logModal">
   <div class="modal-box hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
       <div class="modal-title" id="logTitle">REGISTRO</div>
       <div class="modal-sub" id="logSub"></div>
       <div class="field">
@@ -393,14 +393,14 @@
       <div class="or-sep">— OU —</div>
       <div class="field">
         <label>ENVIE UMA FOTO COMO PROVA (PNG, JPG OU WEBP • MÁX. 5 MB)</label>
-        <label class="photo-drop" for="logPhoto" id="photoDrop">📷 TOCAR PARA ESCOLHER / TIRAR FOTO</label>
+        <label class="photo-drop" for="logPhoto" id="photoDrop"><i data-ico="camera"></i> TOCAR PARA ESCOLHER / TIRAR FOTO</label>
         <input type="file" id="logPhoto" accept="image/png,image/jpeg,image/webp" class="hidden">
         <div class="photo-preview hidden" id="photoPreview">
           <img id="photoImg" alt="Prévia da foto">
-          <button type="button" id="removePhoto" aria-label="Remover foto">✕</button>
+          <button type="button" id="removePhoto" aria-label="Remover foto"><i data-ico="close"></i></button>
         </div>
       </div>
-      <div class="req-hint" id="reqHint">⚠ ENVIE UMA FOTO OU ESCREVA UMA DESCRIÇÃO PARA CONCLUIR.</div>
+      <div class="req-hint" id="reqHint"><i data-ico="warn"></i> ENVIE UMA FOTO OU ESCREVA UMA DESCRIÇÃO PARA CONCLUIR.</div>
       <div class="btn-row">
         <button class="btn ghost" data-close>CANCELAR</button>
         <button class="btn green" id="completeBtn" disabled>CONCLUIR MISSÃO</button>
@@ -443,8 +443,8 @@
             <input class="input" id="charName" maxlength="16" placeholder="Ex.: Kira">
           </div>
           <div class="char-tools">
-            <button type="button" class="btn ghost" id="charRandom">🎲 ALEATÓRIO</button>
-            <button type="button" class="btn ghost" id="charReset">↺ RESETAR</button>
+            <button type="button" class="btn ghost" id="charRandom"><i data-ico="dice"></i> ALEATÓRIO</button>
+            <button type="button" class="btn ghost" id="charReset"><i data-ico="reset"></i> RESETAR</button>
           </div>
           <div class="class-card" id="classCard"></div>
         </div>
@@ -464,7 +464,7 @@
 <div class="modal" id="profileModal">
   <div class="modal-box wide hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
       <div class="modal-title">PERFIL DO AGENTE</div>
       <div class="modal-sub">DADOS DE PROGRESSÃO E EQUIPAMENTO ATUAL.</div>
 
@@ -480,7 +480,7 @@
 
       <div class="btn-row" style="margin-top:18px">
         <button type="button" class="btn ghost" data-close>FECHAR</button>
-        <button type="button" class="btn green" id="editCharBtn">✎ EDITAR APARÊNCIA / CLASSE</button>
+        <button type="button" class="btn green" id="editCharBtn"><i data-ico="pencil"></i> EDITAR APARÊNCIA / CLASSE</button>
       </div>
     </div></div>
   </div>
@@ -490,12 +490,12 @@
 <div class="modal" id="shopModal">
   <div class="modal-box wide hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
       <div class="modal-title">ARSENAL &amp; MERCADO NEON</div>
       <div class="modal-sub">APRIMORE SEUS ATRIBUTOS DE COMBATE E DESBLOQUEIE COSMÉTICOS EXCLUSIVOS.</div>
       <div class="shop-balance">
-        <span>🪙 MOEDAS DISPONÍVEIS: <b id="shopCoinsVal">0</b></span>
-        <span>🎫 FICHAS: <b id="shopTicketsVal">0</b></span>
+        <span><i data-ico="coin"></i> MOEDAS DISPONÍVEIS: <b id="shopCoinsVal">0</b></span>
+        <span><i data-ico="ticket"></i> FICHAS: <b id="shopTicketsVal">0</b></span>
       </div>
       <div class="shop-sections" id="shopContent"></div>
       <div class="btn-row" style="margin-top:18px">
@@ -537,12 +537,12 @@
         </div>
 
         <div class="gh-right">
-          <div class="gh-pill" title="Moedas coletadas na missão">🪙 <b id="ghCoins">0</b></div>
-          <div class="gh-pill" title="XP ganho na missão">⚡ <b id="ghXP">+0 XP</b></div>
-          <div class="gh-pill" title="Fichas restantes">🎫 <b id="ghTickets">0</b></div>
-          <button type="button" class="gh-icon-btn" id="gameMuteBtn" title="Alternar Som">🔊</button>
-          <button type="button" class="gh-icon-btn gh-fs-btn" id="gameFullscreenBtn" title="Tela Cheia">⛶</button>
-          <button type="button" class="gh-icon-btn" id="gamePauseBtn" title="Pausar / Sair (ESC)">⏸</button>
+          <div class="gh-pill" title="Moedas coletadas na missão"><i data-ico="coin"></i> <b id="ghCoins">0</b></div>
+          <div class="gh-pill" title="XP ganho na missão"><i data-ico="bolt"></i> <b id="ghXP">+0 XP</b></div>
+          <div class="gh-pill" title="Fichas restantes"><i data-ico="ticket"></i> <b id="ghTickets">0</b></div>
+          <button type="button" class="gh-icon-btn" id="gameMuteBtn" title="Alternar Som" aria-label="Alternar som"><i data-ico="sound"></i></button>
+          <button type="button" class="gh-icon-btn gh-fs-btn" id="gameFullscreenBtn" title="Tela Cheia" aria-label="Tela cheia"><i data-ico="fullscreen"></i></button>
+          <button type="button" class="gh-icon-btn" id="gamePauseBtn" title="Pausar / Sair (ESC)" aria-label="Pausar"><i data-ico="pause"></i></button>
         </div>
       </div>
 
@@ -582,7 +582,7 @@
       <!-- Barra de controles & Touch -->
       <div class="game-controls-bar">
         <div class="kbd-hints">
-          <span><b>WASD / ← ↑ → ↓</b> MOVIMENTAÇÃO</span>
+          <span><b>WASD / <i data-ico="arrowLeft"></i> <i data-ico="arrowUp"></i> <i data-ico="arrowRight"></i> <i data-ico="arrowDown"></i></b> MOVIMENTAÇÃO</span>
           <span><b>BACKSPACE</b> PULAR</span>
           <span><b>R</b> ESPECIAL <small id="ghSkillCd">PRONTA</small></span>
           <span><b>BOTÃO ESQUERDO DO MOUSE</b> ATAQUE SIMPLES</span>
@@ -614,7 +614,7 @@
           </div>
           <!-- Botões de ação estilo console retrô -->
           <div class="tc-actions">
-            <button type="button" class="tc-btn tc-skill" data-key="skill" aria-label="Habilidade Especial"><span>⚡</span><small>HAB</small></button>
+            <button type="button" class="tc-btn tc-skill" data-key="skill" aria-label="Habilidade Especial"><span><i data-ico="bolt"></i></span><small>HAB</small></button>
             <button type="button" class="tc-btn tc-atk" data-key="attack" aria-label="Atacar"><span>B</span><small>ATK</small></button>
             <button type="button" class="tc-btn tc-jump" data-key="jump" aria-label="Pular"><span>A</span><small>PULO</small></button>
           </div>
@@ -630,12 +630,12 @@
 <div class="modal" id="pwaIosModal">
   <div class="modal-box hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
-      <div class="modal-title">📲 INSTALAR NO IPHONE</div>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
+      <div class="modal-title"><i data-ico="install"></i> INSTALAR NO IPHONE</div>
       <div class="modal-sub">NO SAFARI, SIGA OS PASSOS ABAIXO:</div>
       <ol class="pwa-steps">
-        <li>TOQUE NO BOTÃO <b>COMPARTILHAR</b> <span class="pwa-ico">⬆️</span> NA BARRA DO SAFARI</li>
-        <li>ROLE E ESCOLHA <b>"ADICIONAR À TELA DE INÍCIO"</b> <span class="pwa-ico">➕</span></li>
+        <li>TOQUE NO BOTÃO <b>COMPARTILHAR</b> <span class="pwa-ico"><i data-ico="upload"></i></span> NA BARRA DO SAFARI</li>
+        <li>ROLE E ESCOLHA <b>"ADICIONAR À TELA DE INÍCIO"</b> <span class="pwa-ico"><i data-ico="plus"></i></span></li>
         <li>TOQUE EM <b>ADICIONAR</b>. O ÍCONE DO SISTEMA DE MISSÕES VAI APARECER NA SUA TELA</li>
       </ol>
       <button type="button" class="btn green" data-close style="width:100%;margin-top:16px">ENTENDI</button>
@@ -647,7 +647,7 @@
 <div class="modal" id="accountModal">
   <div class="modal-box wide hud-glow">
     <div class="hud-border"><div class="hud-inner">
-      <button class="modal-close" data-close>✕</button>
+      <button class="modal-close" data-close aria-label="Fechar"><i data-ico="close"></i></button>
       <div class="modal-title">CONFIGURAÇÕES DA CONTA</div>
       <div class="modal-sub" id="accountEmailDisplay">GERENCIE SEU CODINOME, SENHA, PROVEDORES OAUTH E DADOS</div>
 
@@ -657,9 +657,9 @@
         <form id="usernameForm" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
           <input type="text" class="input" id="settingsUsername" maxlength="24" placeholder="novo_username" style="flex:1;min-width:180px">
           <select class="input" id="settingsPrivacy" style="width:auto;min-width:180px">
-            <option value="publico">🌐 PÚBLICO (RANKING &amp; PERFIL)</option>
-            <option value="amigos">👥 APENAS AMIGOS</option>
-            <option value="privado">🔒 PRIVADO (OCULTO)</option>
+            <option value="publico">PÚBLICO (RANKING &amp; PERFIL)</option>
+            <option value="amigos">APENAS AMIGOS</option>
+            <option value="privado">PRIVADO (OCULTO)</option>
           </select>
           <button type="submit" class="btn green" id="saveUsernameBtn">SALVAR PERFIL</button>
         </form>
@@ -689,7 +689,7 @@
         <p style="font-size:12px;opacity:.85;margin-bottom:10px;text-transform:none">
           Esta ação apagará seu perfil, personagem, missões, fotos do Storage, conquistas e histórico do banco de dados.
         </p>
-        <button type="button" class="btn red" id="deleteAccountBtn">🗑 EXCLUIR MINHA CONTA E TODOS OS DADOS</button>
+        <button type="button" class="btn red" id="deleteAccountBtn"><i data-ico="trash"></i> EXCLUIR MINHA CONTA E TODOS OS DADOS</button>
       </div>
 
       <div class="btn-row">
@@ -708,7 +708,7 @@
       <p id="migrationSummary" style="font-size:14px;line-height:1.5;margin-bottom:18px;color:#dff"></p>
       <div class="btn-row">
         <button type="button" class="btn ghost" id="skipMigrationBtn">IGNORAR DADOS LOCAIS</button>
-        <button type="button" class="btn green" id="confirmMigrationBtn">⬆ IMPORTAR PARA MINHA CONTA</button>
+        <button type="button" class="btn green" id="confirmMigrationBtn"><i data-ico="upload"></i> IMPORTAR PARA MINHA CONTA</button>
       </div>
     </div></div>
   </div>
@@ -716,6 +716,7 @@
 
 <!-- SDK Oficial @supabase/supabase-js v2 + Serviços Modulares + Módulos do Sistema -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/icons.js"></script>
 <script src="js/env.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/services/amigos.js"></script>

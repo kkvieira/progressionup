@@ -1146,3 +1146,7 @@
 @media (orientation:landscape){
   .game-screen.touch-mode .tc-actions{ gap:10px 16px; }
 }
+
+/* Ícones pixel art nos botões do jogo */
+.gh-icon-btn .px-ico{ width:16px; height:16px; }
+.tc-btn.tc-skill .px-ico{ width:20px; height:20px; filter:drop-shadow(0 2px 0 rgba(0,0,0,.55)); }

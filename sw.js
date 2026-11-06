@@ -6,7 +6,7 @@
    - Chamadas ao Supabase (login, banco, realtime) NUNCA passam pelo cache.
    Ao mudar a lista de arquivos, aumente a versão abaixo.
    ===================================================================== */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `missoes-${VERSION}`;
 
 const APP_SHELL = [
@@ -16,6 +16,7 @@ const APP_SHELL = [
   'css/style.css',
   'css/character.css',
   'css/game.css',
+  'js/icons.js',
   'js/env.js',
   'js/supabase.js',
   'js/services/amigos.js',

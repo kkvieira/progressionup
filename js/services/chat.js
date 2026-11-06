@@ -77,7 +77,7 @@
       convMap.set(GLOBAL_CONVERSATION_ID, {
         id: GLOBAL_CONVERSATION_ID,
         tipo: 'global',
-        titulo: '🌐 REDE GLOBAL DE AGENTES',
+        titulo: 'REDE GLOBAL DE AGENTES',
         group_id: null,
         unreadCount: 0
       });
@@ -102,7 +102,7 @@
         if (grpConv) {
           convMap.set(grpConv.id, {
             ...grpConv,
-            titulo: `🛡️ ESQUADRÃO [${groupMemberRes.data.groups?.tag || 'CLÃ'}]`,
+            titulo: `ESQUADRÃO [${groupMemberRes.data.groups?.tag || 'CLÃ'}]`,
             unreadCount: 0
           });
         }
@@ -128,7 +128,7 @@
                 .maybeSingle();
 
               conv.dmPartner = prof || { id: otherId, username: 'agente_' + otherId.slice(0, 5), level: 1 };
-              conv.titulo = `💬 @${(conv.dmPartner.username || 'agente').toUpperCase()}`;
+              conv.titulo = `@${(conv.dmPartner.username || 'agente').toUpperCase()}`;
             }
           }
 

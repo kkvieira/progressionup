@@ -57,9 +57,9 @@ const GAME_CONFIG = {
 
   // Custos da Loja
   SHOP_UPGRADES: {
-    hp:  { name: 'FIBRA NANOCARBONO', desc: '+25 Vida Máxima permanente', max: 5, baseCost: 30, costMult: 1.6, icon: '❤️' },
-    dmg: { name: 'AMPLIFICADOR DE PULSO', desc: '+5 Dano de Arma permanente', max: 5, baseCost: 35, costMult: 1.65, icon: '⚔️' },
-    spd: { name: 'PROPULSOR NEURAL', desc: '+6 Velocidade de Movimento', max: 5, baseCost: 25, costMult: 1.55, icon: '⚡' }
+    hp:  { name: 'FIBRA NANOCARBONO', desc: '+25 Vida Máxima permanente', max: 5, baseCost: 30, costMult: 1.6, icon: 'heart' },
+    dmg: { name: 'AMPLIFICADOR DE PULSO', desc: '+5 Dano de Arma permanente', max: 5, baseCost: 35, costMult: 1.65, icon: 'sword' },
+    spd: { name: 'PROPULSOR NEURAL', desc: '+6 Velocidade de Movimento', max: 5, baseCost: 25, costMult: 1.55, icon: 'bolt' }
   },
   SHOP_OUTFITS: [
     { id: 'cyber_agente',   name: 'Traje Agente Cyber',   cost: 80,  desc: 'Visor neon ciano e jaqueta tática.' },
@@ -1981,7 +1981,7 @@ function updateBoss(dt) {
     addFloatingText(b.x, b.y - 16, b.phase === 3 ? 'MODO FÚRIA ATIVADO!' : 'FASE 2: PROTOCOLO LASER!', '#FF3B2F');
   }
 
-  $('#bossPhaseTxt').textContent = `FASE ${b.phase}/3 ${b.exposed ? '• ⚡ NÚCLEO EXPOSTO!' : '• BLINDAGEM ATIVA'}`;
+  $('#bossPhaseTxt').innerHTML = `FASE ${b.phase}/3 ${b.exposed ? '• <i data-ico="bolt"></i> NÚCLEO EXPOSTO!' : '• BLINDAGEM ATIVA'}`;
   $('#bossHpFill').style.width = Math.max(0, Math.round(hpRatio * 100)) + '%';
 
   b.facing = (p.x + p.w / 2) < (b.x + b.w / 2) ? -1 : 1;
@@ -2281,7 +2281,7 @@ function updateItems(dt) {
         case 'coin':
           game.coinsEarned += GAME_CONFIG.COIN_VALUE;
           state.game.coins = (state.game.coins || 0) + GAME_CONFIG.COIN_VALUE;
-          addFloatingText(it.x, it.y - 6, `+${GAME_CONFIG.COIN_VALUE} 🪙`, '#FFC21A');
+          addFloatingText(it.x, it.y - 6, `+${GAME_CONFIG.COIN_VALUE}`, '#FFC21A');
           playGameSfx('coin');
           break;
         case 'heal_chip':
@@ -2350,18 +2350,18 @@ async function finishCityMission(victory) {
         state.game.unlockedOutfits.push(picked.id);
         dropRaroKey = picked.id;
         dropRaroTipo = 'outfit';
-        rareLootMsg = `🎁 DROP RARO DO BOSS: ${picked.name.toUpperCase()} DESBLOQUEADO!`;
+        rareLootMsg = `<i data-ico="gift"></i> DROP RARO DO BOSS: ${picked.name.toUpperCase()} DESBLOQUEADO!`;
       } else if (lockedSkins.length) {
         const picked = lockedSkins[Math.floor(Math.random() * lockedSkins.length)];
         state.game.unlockedWeaponSkins.push(picked.id);
         state.game.equippedWeaponSkin = picked.id;
         dropRaroKey = picked.id;
         dropRaroTipo = 'weapon_skin';
-        rareLootMsg = `🎁 DROP RARO DO BOSS: ${picked.name.toUpperCase()} EQUIPADA!`;
+        rareLootMsg = `<i data-ico="gift"></i> DROP RARO DO BOSS: ${picked.name.toUpperCase()} EQUIPADA!`;
       } else {
         state.game.coins += 35;
         game.coinsEarned += 35;
-        rareLootMsg = `🎁 BÔNUS DE MESTRE: +35 MOEDAS EXTRAS!`;
+        rareLootMsg = `<i data-ico="gift"></i> BÔNUS DE MESTRE: +35 MOEDAS EXTRAS!`;
       }
     }
   } else {
@@ -2448,14 +2448,14 @@ async function finishCityMission(victory) {
   const capReached = getRemainingDailyGameXP() <= 0;
   $('#goStats').innerHTML = `
     <div class="go-Stats-item"><small>DISTÂNCIA PERCORRIDA</small><b>${game.distance}m</b></div>
-    <div class="go-Stats-item"><small>INIMIGOS DERROTADOS</small><b>${game.enemiesKilled} 💼</b></div>
-    <div class="go-Stats-item"><small>MOEDAS GANHAS</small><b>+${game.coinsEarned} 🪙</b></div>
-    <div class="go-Stats-item"><small>XP DE COMBATE${capReached ? ' (LIMITE DIÁRIO)' : ''}</small><b>+${game.rawXPEarned} ⚡</b></div>
+    <div class="go-Stats-item"><small>INIMIGOS DERROTADOS</small><b>${game.enemiesKilled} <i data-ico="briefcase"></i></b></div>
+    <div class="go-Stats-item"><small>MOEDAS GANHAS</small><b>+${game.coinsEarned} <i data-ico="coin"></i></b></div>
+    <div class="go-Stats-item"><small>XP DE COMBATE${capReached ? ' (LIMITE DIÁRIO)' : ''}</small><b>+${game.rawXPEarned} <i data-ico="bolt"></i></b></div>
   `;
 
   const lootEl = $('#goLoot');
   if (rareLootMsg) {
-    lootEl.textContent = rareLootMsg;
+    lootEl.innerHTML = rareLootMsg;
     lootEl.classList.remove('hidden');
   } else {
     lootEl.classList.add('hidden');
@@ -2464,10 +2464,10 @@ async function finishCityMission(victory) {
   const freePlay = areAllDailyTasksCompleted();
   const canReplay = freePlay || (state.game.tickets || 0) >= GAME_CONFIG.TICKET_COST;
   $('#goActions').innerHTML = `
-    <button type="button" class="btn ghost" id="goExitBtn">↩ PAINEL PRINCIPAL</button>
-    <button type="button" class="btn ghost" id="goShopBtn">🛒 LOJA &amp; UPGRADES</button>
+    <button type="button" class="btn ghost" id="goExitBtn"><i data-ico="arrowLeft"></i> PAINEL PRINCIPAL</button>
+    <button type="button" class="btn ghost" id="goShopBtn"><i data-ico="cart"></i> LOJA &amp; UPGRADES</button>
     <button type="button" class="btn green" id="goReplayBtn" ${canReplay ? '' : 'disabled'}>
-      ▶ JOGAR NOVAMENTE (${freePlay ? 'LIVRE ∞' : '1 🎫'})
+      <i data-ico="play"></i> JOGAR NOVAMENTE (${freePlay ? 'LIVRE ∞' : '1 <i data-ico="ticket"></i>'})
     </button>
   `;
 
@@ -2487,12 +2487,12 @@ function togglePauseGame() {
     $('#goSub').textContent = 'OPERAÇÃO EM ESPERA';
     $('#goStats').innerHTML = `
       <div class="go-Stats-item"><small>DISTÂNCIA ATUAL</small><b>${game.distance}m</b></div>
-      <div class="go-Stats-item"><small>INIMIGOS DERROTADOS</small><b>${game.enemiesKilled} 💼</b></div>
+      <div class="go-Stats-item"><small>INIMIGOS DERROTADOS</small><b>${game.enemiesKilled} <i data-ico="briefcase"></i></b></div>
     `;
     $('#goLoot').classList.add('hidden');
     $('#goActions').innerHTML = `
-      <button type="button" class="btn ghost" id="goAbortBtn">✕ ENCERRAR E SALVAR</button>
-      <button type="button" class="btn green" id="goResumeBtn">▶ CONTINUAR</button>
+      <button type="button" class="btn ghost" id="goAbortBtn"><i data-ico="close"></i> ENCERRAR E SALVAR</button>
+      <button type="button" class="btn green" id="goResumeBtn"><i data-ico="play"></i> CONTINUAR</button>
     `;
     $('#goAbortBtn').onclick = () => finishCityMission(false);
     $('#goResumeBtn').onclick = () => togglePauseGame();
@@ -3359,9 +3359,9 @@ function updateGameHUD() {
 
   // Buffs ativos
   const buffs = [];
-  if (p.specialAmmo > 0) buffs.push(`<span class="gh-buff">🔥 MUNIÇÃO x${p.specialAmmo}</span>`);
-  if (p.overdriveTimer > 0) buffs.push(`<span class="gh-buff">⚡ TURBO ${Math.ceil(p.overdriveTimer)}s</span>`);
-  if (p.supportBuffTimer > 0) buffs.push(`<span class="gh-buff">🎵 BUFF ${Math.ceil(p.supportBuffTimer)}s</span>`);
+  if (p.specialAmmo > 0) buffs.push(`<span class="gh-buff"><i data-ico="flame"></i> MUNIÇÃO x${p.specialAmmo}</span>`);
+  if (p.overdriveTimer > 0) buffs.push(`<span class="gh-buff"><i data-ico="bolt"></i> TURBO ${Math.ceil(p.overdriveTimer)}s</span>`);
+  if (p.supportBuffTimer > 0) buffs.push(`<span class="gh-buff"><i data-ico="music"></i> BUFF ${Math.ceil(p.supportBuffTimer)}s</span>`);
   $('#ghBuffs').innerHTML = buffs.join('');
 }
 
@@ -3413,7 +3413,7 @@ function renderCityShop() {
       <div class="shop-card">
         <div>
           <div class="shop-card-head">
-            <div class="shop-card-ico">${cfg.icon}</div>
+            <div class="shop-card-ico">${pxIcon(cfg.icon)}</div>
             <div>
               <b>${cfg.name}</b>
               <small>${cfg.desc}</small>
@@ -3422,7 +3422,7 @@ function renderCityShop() {
           <div class="shop-pips">${pips}</div>
         </div>
         <button type="button" class="shop-buy-btn" data-buy-upg="${key}" ${canAfford ? '' : 'disabled'}>
-          ${isMax ? 'NÍVEL MÁXIMO' : `APRIMORAR • ${cost} 🪙`}
+          ${isMax ? 'NÍVEL MÁXIMO' : `APRIMORAR • ${cost} <i data-ico="coin"></i>`}
         </button>
       </div>`;
   }).join('');
@@ -3442,7 +3442,7 @@ function renderCityShop() {
           </div>
         </div>
         <button type="button" class="shop-buy-btn ${equipped ? 'equipped' : ''}" data-buy-skin="${sk.id}" ${!owned && !canAfford ? 'disabled' : ''}>
-          ${equipped ? '✓ SKIN EQUIPADA (DESEQUIPAR)' : owned ? 'EQUIPAR SKIN' : `COMPRAR • ${sk.cost} 🪙`}
+          ${equipped ? '<i data-ico="check"></i> SKIN EQUIPADA (DESEQUIPAR)' : owned ? 'EQUIPAR SKIN' : `COMPRAR • ${sk.cost} <i data-ico="coin"></i>`}
         </button>
       </div>`;
   }).join('');
@@ -3462,22 +3462,22 @@ function renderCityShop() {
           </div>
         </div>
         <button type="button" class="shop-buy-btn ${equipped ? 'equipped' : ''}" data-buy-outfit="${ot.id}" ${!owned && !canAfford ? 'disabled' : ''}>
-          ${equipped ? '✓ TRAJE EM USO' : owned ? 'EQUIPAR TRAJE' : `COMPRAR • ${ot.cost} 🪙`}
+          ${equipped ? '<i data-ico="check"></i> TRAJE EM USO' : owned ? 'EQUIPAR TRAJE' : `COMPRAR • ${ot.cost} <i data-ico="coin"></i>`}
         </button>
       </div>`;
   }).join('');
 
   $('#shopContent').innerHTML = `
     <div>
-      <div class="shop-sec-title">⚡ UPGRADES DE ATRIBUTOS DE COMBATE</div>
+      <div class="shop-sec-title"><i data-ico="bolt"></i> UPGRADES DE ATRIBUTOS DE COMBATE</div>
       <div class="shop-grid">${upgCards}</div>
     </div>
     <div>
-      <div class="shop-sec-title">🔫 SKINS ENERGÉTICAS DE ARMA</div>
+      <div class="shop-sec-title"><i data-ico="gun"></i> SKINS ENERGÉTICAS DE ARMA</div>
       <div class="shop-grid">${skinCards}</div>
     </div>
     <div>
-      <div class="shop-sec-title">🧥 TRAJES ESPECIAIS DO AGENTE</div>
+      <div class="shop-sec-title"><i data-ico="shirt"></i> TRAJES ESPECIAIS DO AGENTE</div>
       <div class="shop-grid">${outfitCards}</div>
     </div>
   `;
@@ -3599,7 +3599,7 @@ async function handleShopClick(e) {
    ===================================================================== */
 function updateMuteButtonUI() {
   const btn = $('#gameMuteBtn');
-  if (btn) btn.textContent = isGameMuted() ? '🔇' : '🔊';
+  if (btn) btn.innerHTML = pxIcon(isGameMuted() ? 'mute' : 'sound');
 }
 
 function handleGameKey(e, isDown) {
