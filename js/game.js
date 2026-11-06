@@ -1018,7 +1018,93 @@ function gameLoopStep(now) {
     }
   }
   renderGameCanvas();
+  if ((radarFrame = (radarFrame + 1) % 2) === 0) renderMobileRadar();
   rafId = requestAnimationFrame(gameLoopStep);
+}
+
+/* =====================================================================
+   RADAR DO CONTROLE MOBILE
+   Agente no centro; inimigos aparecem como pontos vermelhos conforme
+   entram no alcance (inclusive os que ainda estão fora da tela).
+   ===================================================================== */
+let radarFrame = 0;
+const RADAR_RANGE_X = 360;   // alcance horizontal (px do mundo) para cada lado
+const RADAR_RANGE_Y = 180;   // alcance vertical
+
+function renderMobileRadar() {
+  const cv = document.getElementById('gbRadar');
+  if (!cv || !game || !cv.offsetParent) return;   // escondido (desktop/paisagem)
+  const ctx = cv.getContext('2d');
+  const S = cv.width, C = S / 2, R = S / 2 - 6;
+  const t = game.time || 0;
+  const p = game.player;
+  const st = game.stage;
+  ctx.clearRect(0, 0, S, S);
+
+  // Fundo e anéis
+  ctx.save();
+  ctx.beginPath(); ctx.arc(C, C, R, 0, Math.PI * 2); ctx.clip();
+  const bg = ctx.createRadialGradient(C, C, 4, C, C, R);
+  bg.addColorStop(0, 'rgba(10,70,60,.85)');
+  bg.addColorStop(1, 'rgba(4,22,30,.92)');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, S, S);
+
+  ctx.strokeStyle = 'rgba(124,255,58,.22)'; ctx.lineWidth = 2;
+  [0.33, 0.66].forEach(f => { ctx.beginPath(); ctx.arc(C, C, R * f, 0, Math.PI * 2); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(C - R, C); ctx.lineTo(C + R, C); ctx.moveTo(C, C - R); ctx.lineTo(C, C + R); ctx.stroke();
+
+  // Varredura giratória
+  const ang = (t * 2.2) % (Math.PI * 2);
+  const sweep = ctx.createConicGradient ? ctx.createConicGradient(ang - 0.9, C, C) : null;
+  if (sweep) {
+    sweep.addColorStop(0, 'rgba(124,255,58,0)');
+    sweep.addColorStop(0.14, 'rgba(124,255,58,.35)');
+    sweep.addColorStop(0.145, 'rgba(124,255,58,0)');
+    ctx.fillStyle = sweep; ctx.fillRect(0, 0, S, S);
+  }
+  ctx.strokeStyle = 'rgba(124,255,58,.8)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(C, C); ctx.lineTo(C + Math.cos(ang) * R, C + Math.sin(ang) * R); ctx.stroke();
+
+  if (p && st) {
+    const toRadar = (x, y) => {
+      let dx = (x - p.x) / RADAR_RANGE_X, dy = (y - p.y) / RADAR_RANGE_Y;
+      const d = Math.hypot(dx, dy);
+      return { x: C + dx * R, y: C + dy * R, inside: d <= 1 };
+    };
+    // Inimigos
+    (st.enemies || []).forEach(en => {
+      if (en.hp <= 0) return;
+      const pt = toRadar(en.x, en.y);
+      if (!pt.inside) return;
+      // brilho mais forte logo depois que a varredura passa
+      const a = Math.atan2(pt.y - C, pt.x - C);
+      const since = ((ang - a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      const glow = 1 - Math.min(1, since / (Math.PI * 2)) * 0.6;
+      ctx.fillStyle = `rgba(255,59,47,${glow})`;
+      ctx.shadowColor = '#FF3B2F'; ctx.shadowBlur = 10 * glow;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2); ctx.fill();
+    });
+    // Boss
+    const b = st.boss;
+    if (b && b.active && !b.defeated) {
+      const pt = toRadar(b.x + (b.w || 0) / 2, b.y + (b.h || 0) / 2);
+      if (pt.inside) {
+        const pulse = 9 + Math.sin(t * 8) * 2;
+        ctx.fillStyle = '#FF5AF0'; ctx.shadowColor = '#FF5AF0'; ctx.shadowBlur = 14;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, pulse, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // Agente no centro
+  ctx.fillStyle = '#7CFF3A';
+  ctx.beginPath(); ctx.moveTo(C, C - 8); ctx.lineTo(C + 7, C + 6); ctx.lineTo(C - 7, C + 6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Moldura
+  ctx.strokeStyle = 'rgba(0,240,255,.7)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(C, C, R, 0, Math.PI * 2); ctx.stroke();
 }
 
 /* =====================================================================

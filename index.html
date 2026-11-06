@@ -590,13 +590,17 @@
         <!-- Botões Touch para celular / tablet -->
         <div class="touch-controls gb-shell" id="touchControls">
           <!-- Decoração do console portátil transparente (placa e parafusos aparecendo) -->
-          <div class="gb-pcb" aria-hidden="true"></div>
+          <!-- Radar: mostra os inimigos ao redor do agente -->
+          <div class="gb-radar-wrap" aria-hidden="true">
+            <canvas class="gb-radar" id="gbRadar" width="200" height="200"></canvas>
+            <small>RADAR</small>
+          </div>
           <span class="gb-screw s1" aria-hidden="true"></span>
           <span class="gb-screw s2" aria-hidden="true"></span>
           <span class="gb-screw s3" aria-hidden="true"></span>
           <span class="gb-screw s4" aria-hidden="true"></span>
-          <!-- Direcional (analógico por baixo: esquerda/direita/abaixar) -->
-          <div class="tc-joystick" id="tcJoystick" aria-label="Direcional de movimentação">
+          <!-- Joystick analógico (esquerda/direita/abaixar) -->
+          <div class="tc-joystick" id="tcJoystick" aria-label="Joystick de movimentação">
             <div class="tc-joy-ring"></div>
             <div class="tc-stick" id="tcStick"></div>
           </div>
